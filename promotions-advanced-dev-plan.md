@@ -1,180 +1,180 @@
-# Dev Plan: Promotions Advanced feature (F2P and Premium PC)
+# 开发计划：Promotions Advanced feature（F2P 与 Premium PC）
 
-- **Source PRD:** [promotions-advanced-prd.md](promotions-advanced-prd.md) (Confluence: PRD - Promotions in F2P and Premium PC Business Accounts, Advanced feature)
-- **Branch:** `feat/new-feature-prd`
-- **Status:** Draft, revision 2. Blocked on the open decisions in section 1 and the items to confirm in section 7.
-- **Revision 2:** Updated after a review against the PRD. Changes: scope split per account repo, Advanced list location, separate state for the initial setup and the Advanced guides, explicit step confirmation, overview page, "View guide" link, D1 access gap, analytics source, and a mapping from exit criteria to verification.
+- **来源 PRD：** [promotions-advanced-prd.md](promotions-advanced-prd.md)（Confluence：PRD - Promotions in F2P and Premium PC Business Accounts, Advanced feature）
+- **分支：** `feat/new-feature-prd`
+- **状态：** 草稿，revision 2。等待第 1 节的待决事项和第 7 节的待确认项。
+- **Revision 2：** 按对照 PRD 的 review 修订。改动：按账户仓库拆分范围；Advanced 列表的位置；初始 setup 与 Advanced guide 分开存状态；显式的步骤确认；overview 页面；"View guide" 链接；D1 的权限缺口；埋点的数据来源；退出标准到验证手段的对照。
 
-## Scope of this plan
+## 本计划范围
 
-This plan delivers the **Free-to-play account only**, in `free-to-play-pc`.
+本计划**只交付 Free-to-play 账户**，代码在 `free-to-play-pc`。
 
-The PRD covers two accounts. Premium PC is a separate repository (`premium-pc-games`, with its own `src/pages/GetStarted` and sidebar config). Project rules forbid changes to sibling account repos from this work. So:
+PRD 覆盖两个账户。Premium PC 是独立仓库（`premium-pc-games`），有自己的 `src/pages/GetStarted` 和 sidebar 配置。项目规则禁止本工作修改兄弟账户仓库。因此：
 
-- Premium PC delivery needs its own owner and plan (see C1 in section 7).
-- Parts that both accounts can share go to `business-account-shared-library`, then get imported back. Candidates: the card-state rule, the promotions read client, and the guide content model (task 0.1).
-- The PRD exit criteria say "in each account". This plan meets them for F2P only. Premium PC sign-off depends on C1.
+- Premium PC 的交付需要单独的负责人和计划（见第 7 节 C1）。
+- 两个账户可共享的部分放入 `business-account-shared-library`，再引入回来。候选：卡片状态规则、promotions 读取 client、guide content model（任务 0.1）。
+- PRD 的退出标准要求"每个账户"都满足。本计划只对 F2P 满足。Premium PC 的签字取决于 C1。
 
-## 0. Context from the codebase
+## 0. 代码现状
 
-| Area | What exists today | Implication |
+| 领域 | 现状 | 影响 |
 |---|---|---|
-| Get Started registry | `src/pages/GetStarted/setups/index.ts` holds `SETUPS` (3 launch paths). `SetupPathId` in `setup-wizard/types.ts` is a closed union. `SetupSelection.tsx:29` renders every `SETUPS` entry that is not `hidden` in the "Start with" grid. | Do **not** register the guides in `SETUPS`. If you add them, they show in "Start with" (breaks D2-FR1). If you mark them `hidden`, the widget and resume logic skip them (breaks D3-FR10). Use a separate `ADVANCED_GUIDES` registry. |
-| Selection screen | `selection/SelectionScreen.tsx:27-31` redirects to the current setup's hub when the project has a `currentSetupId`. Only `?switch=1` shows the picker. | A partner who finished the initial setup never sees this screen. The Advanced list cannot live **only** here (task 2.4). |
-| Current setup | `useTrackCurrentSetup.ts:20` dispatches `setCurrentSetup` when `SetupScreen` opens a setup. `useSetupProgress` reads that one id. It feeds `SetupGuideWidget`, `SetupProgressBadge` and `resolveEntry`. | The project tracks one current setup. If the promotions guides use `SetupScreen` unchanged, they replace the initial setup in the widget, the badge and the "Get started" entry. The guides need their own state (task 3.4). |
-| Step completion | `verify` steps are backend-derived (`useSetupStatus`). Steps without `verify` are marked passed on Next **or Skip** (`SetupScreen.tsx:476-477`, `markStepPassed`). | "Walked past" is not "confirmed". D3-FR5 needs an explicit confirmation state (task 3.2). |
-| Progress storage | `getStartedLocal` writes to `localStorage` (`getStartedLocal.ts:201`), versioned by `SCHEMA_VERSION`. | Progress lives in one browser. D3-FR7 (per project, resume from anywhere) needs shared storage (Q14, C2). |
-| Setup content model | `SetupConfig` has `setupItemIds` ("What you'll set up"), `analytics` (Metrika event names only), `hidden`, final-page layout. | There is no field for the overview "before you start" list (D3-FR2) or for card state in analytics events. |
-| Promotions API | No promotions or discount client in `src/core/apis/`. | A new read client is needed for Live and step detection (PRD R2). |
-| Promotions route | `src/routes/inside/storefront.ts:5-11` mounts `/storefront` on `layouts/storefront/index.tsx:63`, which renders `RemoteModule name="storefront"`. Promotions is a sub-route inside that remote. | D1 is mainly verification, not a new embed. |
-| Sidebar | `src/layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:225-229`, LiveOps group, has a **Promotions** item → `/projects/${projectId}/storefront/promotions`. It has **no** `privileges`. The `/storefront` route guard checks only catalog, delivery and project-settings privileges. | Access gap for D1-FR5 and D1-US4 (task 1.4). |
-| Analytics | Guide events: `src/pages/GetStarted/setup-wizard/guideAnalytics.ts`. `selection/analytics.ts` is the onboarding-form goal map (`Record<SetupPathId, …>`). | New fields need tracking-plan rows (task 4.1). If `SetupPathId` stays closed, `selection/analytics.ts` needs no change. |
-| Locales | Only `src/locales/en.json` is hand-edited. | New copy goes there. Smartcat fills the rest. |
+| Get Started 注册表 | `src/pages/GetStarted/setups/index.ts` 中的 `SETUPS`（3 条起步路径）。`setup-wizard/types.ts` 中的 `SetupPathId` 是封闭的 union。`SetupSelection.tsx:29` 会在 "Start with" 网格中渲染所有非 `hidden` 的 `SETUPS` 条目。 | **不要**把 guide 注册进 `SETUPS`。加进去会出现在 "Start with" 中（违反 D2-FR1）；标成 `hidden` 又会被 widget 和 resume 逻辑跳过（违反 D3-FR10）。使用独立的 `ADVANCED_GUIDES` 注册表。 |
+| 选择页 | 项目有 `currentSetupId` 时，`selection/SelectionScreen.tsx:27-31` 会重定向到当前 setup 的 hub。只有 `?switch=1` 才显示选择页。 | 完成初始 setup 的伙伴永远看不到这个页面。Advanced 列表不能**只**放在这里（任务 2.4）。 |
+| 当前 setup | `SetupScreen` 打开某个 setup 时，`useTrackCurrentSetup.ts:20` 会 dispatch `setCurrentSetup`。`useSetupProgress` 只读这一个 id，它供给 `SetupGuideWidget`、`SetupProgressBadge` 和 `resolveEntry`。 | 项目只跟踪一个当前 setup。如果 promotions guide 原样走 `SetupScreen`，会在 widget、badge 和 "Get started" 入口中替换掉初始 setup。guide 需要自己的状态（任务 3.4）。 |
+| 步骤完成 | `verify` 步骤由后端判定（`useSetupStatus`）。没有 `verify` 的步骤在 Next **或 Skip** 时被标记为 passed（`SetupScreen.tsx:476-477`，`markStepPassed`）。 | "走过"不等于"已确认"。D3-FR5 需要显式的确认状态（任务 3.2）。 |
+| 进度存储 | `getStartedLocal` 写入 `localStorage`（`getStartedLocal.ts:201`），用 `SCHEMA_VERSION` 做版本控制。 | 进度只存在于一个浏览器中。D3-FR7（按项目持久化，从任意位置 resume）需要共享存储（Q14、C2）。 |
+| Setup content model | `SetupConfig` 有 `setupItemIds`（"What you'll set up"）、`analytics`（只有 Metrika 事件名）、`hidden`、完成页布局。 | 没有 overview 中 "before you start" 清单的字段（D3-FR2），埋点也没有卡片状态字段。 |
+| Promotions API | `src/core/apis/` 中没有 promotions 或 discount 的 client。 | Live 状态和步骤检测需要新的只读 client（PRD R2）。 |
+| Promotions 路由 | `src/routes/inside/storefront.ts:5-11` 把 `/storefront` 挂到 `layouts/storefront/index.tsx:63`，后者渲染 `RemoteModule name="storefront"`。Promotions 是该 remote 内部的子路由。 | D1 主要是验证，不是新建嵌入。 |
+| Sidebar | `src/layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:225-229` 的 LiveOps 分组中有 **Promotions** 项 → `/projects/${projectId}/storefront/promotions`。它**没有** `privileges`。`/storefront` 的路由守卫只检查 catalog、delivery 和 project-settings 权限。 | D1-FR5 和 D1-US4 存在权限缺口（任务 1.4）。 |
+| 埋点 | guide 事件：`src/pages/GetStarted/setup-wizard/guideAnalytics.ts`。`selection/analytics.ts` 是 onboarding 表单的目标映射（`Record<SetupPathId, …>`）。 | 新字段需要 tracking plan 条目（任务 4.1）。如果 `SetupPathId` 保持封闭，`selection/analytics.ts` 无需修改。 |
+| Locales | 只手工编辑 `src/locales/en.json`。 | 新文案写在这里，其余语言由 Smartcat 填充。 |
 
-## 1. Open decisions (block the build)
+## 1. 待决事项（阻塞开发）
 
-These come from the PRD open questions and from section 7. Each one changes code, so resolve it before the task it blocks.
+以下来自 PRD 的 open questions 和第 7 节。每一项都会改变代码，必须在它阻塞的任务开始前解决。
 
-| Ref | Decision | Blocks |
+| 编号 | 待决事项 | 阻塞 |
 |---|---|---|
-| Q4 | What makes a card **Live**: an active promotion of that type, or an account flag? | 2.2 |
-| Q5 | What counts as **initial setup completed**? | 2.3 |
-| Q10 | Blocked card vs. hidden card before setup is done | 2.3 |
-| Q6 | Where bonus promotions sit (under which card, or a third card) | 2.1, 3.1 |
-| Q7 | Is F2P the "Live-service PC" variant for card selection? | 2.1 |
-| Q14 | Guide progress per project or per user, and where it is stored | 3.4 |
-| Q15 | Are partner-confirmed test steps acceptable for v1? | 3.2 |
-| Q16 | Reuse the Quick-Start framework, and who approves copy | 3.* |
-| R1 | Capability taxonomy sign-off (sprint 0 blocker) | 2.* |
-| R2 | Promotions list endpoint and fallback behaviour without it | 2.2, 3.3 |
-| P1–P5, C1–C3 | Items to confirm, see section 7 | as listed there |
+| Q4 | 卡片何时为 **Live**：有该类型的 active promotion，还是账户级开关？ | 2.2 |
+| Q5 | 什么算 **初始 setup 完成**？ | 2.3 |
+| Q10 | setup 完成前卡片显示 Blocked 还是隐藏 | 2.3 |
+| Q6 | bonus promotion 归在哪张卡下（还是第三张卡） | 2.1、3.1 |
+| Q7 | 在卡片选择上，F2P 是否就是 "Live-service PC" 变体？ | 2.1 |
+| Q14 | guide 进度按项目还是按用户，存在哪里 | 3.4 |
+| Q15 | v1 是否接受由伙伴确认的测试步骤？ | 3.2 |
+| Q16 | 是否复用 Quick-Start 框架，谁审批文案 | 3.* |
+| R1 | Capability taxonomy 签字（sprint 0 阻塞项） | 2.* |
+| R2 | Promotions 列表 endpoint，以及没有它时的降级行为 | 2.2、3.3 |
+| P1–P5、C1–C3 | 待确认项，见第 7 节 | 见第 7 节 |
 
-## 2. Tasks by deliverable
+## 2. 按交付物拆分的任务
 
-### Shared
+### 共享部分
 
-0.1 **Shared library.** For each of these, decide whether it goes to `business-account-shared-library`: the card-state rule (2.2, 2.3), the promotions read client (2.2), and the guide content model (3.1). Put a part there only if Premium PC will use it (C1). Otherwise keep it in this repo.
+0.1 **共享库。** 逐项决定是否放入 `business-account-shared-library`：卡片状态规则（2.2、2.3）、promotions 读取 client（2.2）、guide content model（3.1）。只有 Premium PC 会用到时才放（C1），否则留在本仓库。
 
-### D1: Promotions section (embedded module)
+### D1：Promotions 区域（嵌入模块）
 
-1.1 **Verify the existing route.** The `storefront` remote serves `/projects/:id/storefront/promotions` (`routes/inside/storefront.ts`, `layouts/storefront`). Confirm that the remote renders the Publisher Account Promotions module, and that no link inside it redirects out (PRD R3). If a link goes out, record it as a gap. Do not rewrite the module.
-1.2 **Existing promotions.** On stage, open a project that already has promotions in Publisher Account. Confirm status, values and redemption are unchanged in the embedded section (D1-FR3, exit criterion).
-1.3 **Sidebar.** Keep the Promotions item in the LiveOps group. Confirm `visibility` and `hidden` for the F2P account.
-1.4 **Access gap (fix).** Add the Promotions privilege(s) to the nav item at `nav-items-config.tsx:225-229` so `filter-accessible-nav-items` hides it from users without Promotions access (D1-FR5). The `/storefront` route guard requires catalog and delivery privileges, so a user with Promotions access only cannot open the section (breaks D1-US4). Give the promotions sub-route its own guard with the Promotions privilege. The privilege names are C3. Update `rbac-contract.test.ts`.
-1.5 **Stable address.** Record `/projects/${projectId}/storefront/promotions` as a constant. Cards and guide steps link to it (D1-FR6).
+1.1 **验证现有路由。** `storefront` remote 承载 `/projects/:id/storefront/promotions`（`routes/inside/storefront.ts`、`layouts/storefront`）。确认该 remote 渲染的是 Publisher Account 的 Promotions 模块，且内部没有跳出账户的链接（PRD R3）。如果有链接跳出，记录为缺口，不要重写模块。
+1.2 **已有 promotions。** 在 stage 上打开一个已在 Publisher Account 中有 promotions 的项目。确认嵌入区域中的状态、数值和兑换行为都没有变化（D1-FR3、退出标准）。
+1.3 **Sidebar。** Promotions 项保留在 LiveOps 分组中。确认 F2P 账户的 `visibility` 和 `hidden` 设置正确。
+1.4 **补齐权限缺口。** 给 `nav-items-config.tsx:225-229` 的导航项加上 Promotions 权限，使 `filter-accessible-nav-items` 对没有 Promotions 权限的用户隐藏它（D1-FR5）。`/storefront` 路由守卫要求 catalog 和 delivery 权限，所以只有 Promotions 权限的用户打不开该区域（违反 D1-US4）。给 promotions 子路由加上使用 Promotions 权限的独立守卫。权限名见 C3。更新 `rbac-contract.test.ts`。
+1.5 **稳定地址。** 把 `/projects/${projectId}/storefront/promotions` 记为常量。卡片和 guide 步骤都链接到它（D1-FR6）。
 
-### D2: Advanced cards
+### D2：Advanced 卡片
 
-2.1 **Registry.** Add `ADVANCED_GUIDES` with the card model (`id`, name, description, account examples, guide config). Keep it apart from `SETUPS`. Then the "Start with" grid, the onboarding-form goal map and the resume redirect stay unchanged (D2-FR1).
-2.2 **Live state.** Add a read-only client in `src/core/apis/promotions.ts` (list active promotions by type). Expose it through a hook, for example `useAdvancedCardState`. Live means the Q4 rule holds. Keep the rule in one module.
-2.3 **Blocked / Available.** Add a rule for "initial setup completed" (Q5). It reads the initial setup's status, not `currentSetupId`, because opening a guide must not change the answer. Blocked cards name the unfinished setup and link to it (D2-FR7). A Blocked card cannot launch a guide or open Promotions. It moves to Available on the next page load after the initial setup completes (D2-FR8). Do not reuse `requiredStepIds`, which is per setup.
-2.4 **Advanced list location.** Build an `AdvancedList` component. Mount it where a partner can reach it after the initial setup. Proposed: the initial setup's hub and its all-done final page, and also the selection screen under `?switch=1`. The final location is P1.
-2.5 **Card UI.** Each card shows name, description, a badge (Live / Available / Blocked, with a text label) and one primary button (D2-FR2):
-   - Live: "Open" goes to the address in 1.5, and a secondary **"View guide"** link reopens the guide (D2-FR5, D3-FR9, D3-US7).
-   - Available: "Set up" launches the guide and resumes at the current step (D2-FR6).
-   - Blocked: disabled button, plus the unfinished setup's name and link (D2-FR7).
-2.6 **Account variants.** Card copy comes from the content model, not component logic (D2-FR9, D3-FR11). This repo carries the F2P examples (virtual items, currency packs). Premium PC copy belongs to C1.
+2.1 **注册表。** 新增 `ADVANCED_GUIDES`，包含卡片模型（`id`、名称、描述、账户示例、guide config），与 `SETUPS` 分开。这样 "Start with" 网格、onboarding 表单的目标映射和 resume 重定向都保持不变（D2-FR1）。
+2.2 **Live 状态。** 在 `src/core/apis/promotions.ts` 中新增只读 client（按类型列出 active promotions）。通过 hook 暴露，例如 `useAdvancedCardState`。Q4 规则成立时为 Live。规则集中在一个模块中。
+2.3 **Blocked / Available。** 新增"初始 setup 完成"规则（Q5）。它读取初始 setup 的状态，而不是 `currentSetupId`，因为打开 guide 不能改变判定结果。Blocked 卡片写出未完成的 setup 名称并链接过去（D2-FR7）。Blocked 卡片不能启动 guide，也不能打开 Promotions。初始 setup 完成后，下一次页面加载时变为 Available（D2-FR8）。不要复用按 setup 生效的 `requiredStepIds`。
+2.4 **Advanced 列表位置。** 新建 `AdvancedList` 组件，挂在伙伴完成初始 setup 后能到达的位置。建议：初始 setup 的 hub 和完成页，以及 `?switch=1` 下的选择页。最终位置见 P1。
+2.5 **卡片 UI。** 每张卡片显示名称、描述、状态 badge（Live / Available / Blocked，带文字标签）和一个主按钮（D2-FR2）：
+   - Live："Open" 跳转到 1.5 的地址，次要的 **"View guide"** 链接重新打开 guide（D2-FR5、D3-FR9、D3-US7）。
+   - Available："Set up" 启动 guide，并 resume 到当前步骤（D2-FR6）。
+   - Blocked：按钮禁用，并显示未完成 setup 的名称和链接（D2-FR7）。
+2.6 **账户变体。** 卡片文案来自 content model，不写在组件逻辑中（D2-FR9、D3-FR11）。本仓库提供 F2P 示例（virtual item、currency pack）。Premium PC 文案属于 C1。
 
-### D3: Setup guides
+### D3：Setup guides
 
-3.1 **Two guide configs.** Add `advanced/promotions-discounts/config.tsx` and `advanced/promo-codes-coupons/config.tsx`, registered in `ADVANCED_GUIDES`. Mount them on their own route (for example `get-started/advanced/:guideId`). Reuse the presentation parts of the engine (`SetupHub`, `SetupWizard`, step cards). Do **not** go through `SetupScreen`'s `useTrackCurrentSetup`, so the initial setup stays the current setup (D3-FR1).
-3.2 **Overview page (new).** Add an overview content field: goal, what the partner will accomplish, and a "before you start" list. Derive the step count from the steps. The guide opens on this page the first time. It opens on the current step when the partner resumes (D3-FR2, D3-FR7).
-3.3 **Steps.** Define steps per PRD D3-FR12 to D3-FR22. Each step is one of two kinds:
-   - **Detectable** (`verify`): only where a list endpoint gives a read-only signal (catalog item exists, active promotion exists, code exists). The partner never marks these done (D3-FR4).
-   - **Confirmed**: shows an "I've done this" control. It is done only when the partner confirms (D3-FR5). Next and Skip move the partner along but **never** complete it. Store confirmations apart from `markStepPassed`.
-   Which steps without a "Done when" line are detectable and which are confirmed is P3. Use `requiredStepIds` only where a step truly cannot be done before another.
-3.4 **Verifiers.** Add `verifiers.ts` per guide. List endpoints only. Never call an `ensure*` helper.
-3.5 **Progress state.** Add a separate `advancedGuides` state keyed by project and guide. It holds the selected path and the confirmed step ids. It does not touch `currentSetupId`. Storage follows Q14 and P2: D3-FR7 asks for per-project progress that resumes from any device, which `localStorage` cannot give. If shared storage is not ready for v1, use `localStorage` as an interim with a new schema version, and list the cross-device gap in the MR.
-3.6 **Completion.** Success screen that names what was set up, states that the capability is live, and suggests the next capability (D3-FR8). The card moves to Live from account data, with no manual action (D3-FR9).
-3.7 **Floating widget.** Extend `useSetupProgress` and `SetupGuideWidget` to also consider incomplete Advanced guides. Show capability name, current step label, "Go to step" and "View full guide" (D3-FR10). The rule for which guide the widget shows when more than one is incomplete is P4. Proposed: the initial setup while it is incomplete, then the most recently opened incomplete Advanced guide. `SetupProgressBadge` and `resolveEntry` keep reporting the initial setup only.
-3.8 **Alternative paths (code type step).** Store the selected path per guide (3.5). Show only that path's instructions. Keep the other path selectable (D3-FR6).
-3.9 **Copy and locale.** Add keys under `host.pages.getStarted.advanced.promotionsDiscounts.*` and `...promoCodesCoupons.*` in `src/locales/en.json` only. Include overview, card, step, confirmation, success and `hub.*` copy.
-3.10 **Style.** If a new accent is needed, add it in `style.css`.
+3.1 **两份 guide config。** 新增 `advanced/promotions-discounts/config.tsx` 和 `advanced/promo-codes-coupons/config.tsx`，注册到 `ADVANCED_GUIDES`。挂在独立路由上（例如 `get-started/advanced/:guideId`）。复用引擎的展示部件（`SetupHub`、`SetupWizard`、步骤卡片）。**不要**经过 `SetupScreen` 的 `useTrackCurrentSetup`，使初始 setup 始终是当前 setup（D3-FR1）。
+3.2 **Overview 页面（新增）。** 新增 overview 内容字段：目标、伙伴将完成的内容、"before you start" 清单。步骤数由步骤自动计算。第一次打开 guide 时进入此页；resume 时直接进入当前步骤（D3-FR2、D3-FR7）。
+3.3 **步骤。** 按 PRD D3-FR12 到 D3-FR22 定义步骤。每个步骤属于以下两类之一：
+   - **可检测**（`verify`）：只在列表 endpoint 能提供只读信号时使用（catalog item 存在、active promotion 存在、code 存在）。伙伴不能手动标为完成（D3-FR4）。
+   - **需确认**：显示 "I've done this" 控件。只有伙伴确认后才算完成（D3-FR5）。Next 和 Skip 可以让伙伴继续往下走，但**永远不会**完成它。确认记录与 `markStepPassed` 分开存储。
+   没有 "Done when" 的步骤属于哪一类，见 P3。只有在某步骤确实不能早于另一步骤完成时，才使用 `requiredStepIds`。
+3.4 **Verifiers。** 每个 guide 新增一个 `verifiers.ts`。只使用列表 endpoint，不得调用任何 `ensure*` helper。
+3.5 **进度状态。** 新增独立的 `advancedGuides` 状态，按项目和 guide 区分，保存选择的路径和已确认的步骤 id。它不修改 `currentSetupId`。存储方式按 Q14 和 P2 决定：D3-FR7 要求按项目保存、可从任意设备 resume，`localStorage` 做不到。如果 v1 时共享存储还没就绪，先用带新 schema 版本号的 `localStorage` 过渡，并在 MR 中列出跨设备的缺口。
+3.6 **完成。** 成功页写出已设置的内容，说明该能力已上线，并推荐下一个能力（D3-FR8）。卡片根据账户数据变为 Live，无需手动操作（D3-FR9）。
+3.7 **浮动 widget。** 扩展 `useSetupProgress` 和 `SetupGuideWidget`，使其也考虑未完成的 Advanced guide。显示能力名称、当前步骤标签、"Go to step" 和 "View full guide"（D3-FR10）。多个 guide 未完成时显示哪一个，见 P4。建议：初始 setup 未完成时优先显示它，之后显示最近打开的未完成 Advanced guide。`SetupProgressBadge` 和 `resolveEntry` 只继续报告初始 setup。
+3.8 **双路径（code 类型步骤）。** 按 guide 保存选择的路径（3.5）。只显示所选路径的说明，另一条路径仍可选（D3-FR6）。
+3.9 **文案与 locale。** key 放在 `host.pages.getStarted.advanced.promotionsDiscounts.*` 和 `...promoCodesCoupons.*` 下，只改 `src/locales/en.json`。包括 overview、卡片、步骤、确认、成功页和 `hub.*` 文案。
+3.10 **样式。** 如果需要新的 accent，加在 `style.css` 中。
 
-### Cross-cutting
+### 横切任务
 
-4.1 **Analytics.** The PRD events (card button click, guide opened, step button clicked, guide completed) need capability id, step, card state, account variant and timestamp. `SetupConfig.analytics` carries only Metrika event names, and the engine sends nothing for a setup that has no `analytics` block. Get the event names and fields from the tracking plan first (C2). Then add an analytics block to `ADVANCED_GUIDES` and send the extra fields through `setup-wizard/guideAnalytics.ts`.
-4.2 **Accessibility.** Badges and step status carry a text label, not colour alone. Buttons are keyboard-navigable and have descriptive labels. WCAG 2.1 AA (PRD NFR).
-4.3 **Admin view.** Xsolla-internal admins see the same cards and guides, marked as a partner-facing view (PRD NFR). Today `useSetupProgress.ts:117` lets admins through with no mark. Add the mark on cards, guides and widget.
-4.4 **Performance.** Cards and guide pages reach interactive state within 3 seconds. Fetch card state once per page load.
-4.5 **Layout.** Check cards, guides and widget at 1366x768 and on a 13" Mac (PRD NFR).
-4.6 **Stale data.** Guide progress from earlier builds must not break the new steps. Version the new `advancedGuides` storage.
+4.1 **埋点。** PRD 要求的事件（card button click、guide opened、step button clicked、guide completed）需要带 capability id、step、card state、account variant 和 timestamp。`SetupConfig.analytics` 只有 Metrika 事件名；setup 没有 `analytics` 块时，引擎不发送任何事件。先从 tracking plan 取得事件名和字段（C2），再给 `ADVANCED_GUIDES` 加 analytics 块，并通过 `setup-wizard/guideAnalytics.ts` 发送额外字段。
+4.2 **无障碍。** badge 和步骤状态带文字标签，不只靠颜色。按钮支持键盘操作，并有描述性标签。WCAG 2.1 AA（PRD NFR）。
+4.3 **Admin 视图。** Xsolla 内部 admin 看到相同的卡片和 guide，并标注为面向伙伴的视图（PRD NFR）。目前 `useSetupProgress.ts:117` 直接放行 admin，没有任何标注。需要在卡片、guide 和 widget 上加标注。
+4.4 **性能。** 卡片和 guide 页面在 3 秒内可交互。每次页面加载只取一次卡片状态。
+4.5 **布局。** 在 1366x768 和 13 英寸 Mac 上检查卡片、guide 和 widget（PRD NFR）。
+4.6 **过期数据。** 早期版本留下的 guide 进度不能破坏新步骤。新的 `advancedGuides` 存储要带版本号。
 
-## 3. Test plan (write first, run only when asked)
+## 3. 测试计划（先写测试，只在用户要求时运行）
 
-Per project policy, tests are written before the code but **not executed** unless the user asks.
+按项目规则，测试先于代码编写，但除非用户要求，**不运行**。
 
-| Layer | Target |
+| 层级 | 测试目标 |
 |---|---|
-| Unit | Card state rule (Live / Available / Blocked); initial-setup-completed rule (Q5) does not change when a guide is opened; verifiers with mocked list responses; current-step logic; **Skip and Next do not complete a confirmed step**; selected path persists |
-| Component | `AdvancedList` in each mount point (2.4); card badges, primary button and "View guide" link per state; Blocked card names and links the unfinished setup; overview page content; success screen; widget shows capability name, current step, "Go to step", "View full guide" |
-| State | Opening a guide does not change `currentSetupId`, the "Get started" entry or `SetupProgressBadge`; Blocked → Available on the next load after the initial setup completes (D2-FR8) |
-| Access | `filter-accessible-nav-items.test.ts`: Promotions hidden without the Promotions privilege; `rbac-contract.test.ts`: Promotions-only user can open the sub-route |
-| Routing | Promotions sub-route renders inside the account shell; no redirect to Publisher Account (R3) |
-| Analytics | Each PRD event fires with capability id, step, card state, account variant and timestamp |
-| Accessibility | Badges and step statuses have a text label; buttons reachable by keyboard |
-| Locale | `locales/index.test.ts` still passes with the new keys |
-| E2E (opt-in) | Both guides end to end; see `CLAUDE.md` `test:e2e:visual` for the screenshot baseline process |
+| Unit | 卡片状态规则（Live / Available / Blocked）；打开 guide 不改变"初始 setup 完成"规则（Q5）的结果；verifier 在 mock 列表响应下的结果；当前步骤逻辑；**Skip 和 Next 不会完成需确认的步骤**；所选路径能持久保存 |
+| Component | 每个挂载位置（2.4）中的 `AdvancedList`；各状态下卡片的 badge、主按钮和 "View guide" 链接；Blocked 卡片写出并链接未完成的 setup；overview 页面内容；成功页；widget 显示能力名称、当前步骤、"Go to step"、"View full guide" |
+| State | 打开 guide 不改变 `currentSetupId`、"Get started" 入口或 `SetupProgressBadge`；初始 setup 完成后下一次加载时 Blocked → Available（D2-FR8） |
+| Access | `filter-accessible-nav-items.test.ts`：没有 Promotions 权限时隐藏 Promotions；`rbac-contract.test.ts`：只有 Promotions 权限的用户能打开子路由 |
+| Routing | Promotions 子路由在账户 shell 内渲染；不跳转到 Publisher Account（R3） |
+| Analytics | 每个 PRD 事件都带 capability id、step、card state、account variant 和 timestamp |
+| Accessibility | badge 和步骤状态有文字标签；按钮可通过键盘访问 |
+| Locale | 加入新 key 后 `locales/index.test.ts` 仍通过 |
+| E2E（按需启用） | 两个 guide 端到端；截图基线流程见 `CLAUDE.md` 的 `test:e2e:visual` |
 
-Skipped future behaviour (real-data Live state until R2 closes, automatic test-step detection) goes in as skipped tests with an activation condition, per the project placeholder policy.
+尚未实现的未来行为（R2 关闭前的真实 Live 状态、测试步骤自动检测）按项目 placeholder 规则写成 skipped test，并写明启用条件。
 
-### Exit criteria → verification
+### 退出标准 → 验证手段
 
-| PRD exit criterion | How this plan verifies it (F2P) |
+| PRD 退出标准 | 本计划的验证手段（F2P） |
 |---|---|
-| Each guide end to end, live offer and live code applied in a real purchase | Manual run of both guides on stage, with a real test purchase and a real redemption; recorded in the MR "Stage verification" section |
-| Blocked before initial setup, Available immediately after | State tests (D2-FR8) plus a stage check on a new project |
-| Card moves to Live after completion without manual action | Unit test on the card-state rule plus the stage run above; depends on R2 |
-| Existing promotions unchanged | Task 1.2 on stage |
-| No partner-reported regression in the release window | Post-release monitoring; user-owned |
-| Q4, Q5, Q6, Q7, Q10 closed; taxonomy signed off | Section 1 resolved before the related task starts |
-| Same criteria in the Premium PC account | Not covered here; see C1 |
+| 每个 guide 端到端走通，得到上线的优惠和上线的 code，并在真实购买流程中生效 | 在 stage 上手动走完两个 guide，做一次真实测试购买和一次真实兑换；记录在 MR 的 "Stage verification" 一节 |
+| setup 完成前显示 Blocked，完成后立即变为 Available | State 测试（D2-FR8）加 stage 新项目检查 |
+| guide 完成后卡片无需手动操作即变为 Live | 卡片状态规则的 unit test 加上面的 stage 走查；依赖 R2 |
+| 切换前已有的 promotions 保持不变 | 在 stage 上执行任务 1.2 |
+| 发布窗口内没有伙伴报告的回归 | 发布后监控；由用户负责 |
+| Q4、Q5、Q6、Q7、Q10 关闭；taxonomy 已签字 | 相关任务开始前解决第 1 节 |
+| Premium PC 账户满足同样标准 | 本计划不覆盖；见 C1 |
 
-## 4. Verification before merge
+## 4. 合并前验证
 
-- Local `pnpm dev:stage` is **not** verification for the MR (`CLAUDE.md`).
-- MR needs stage verification: `pnpm release` to stage, then preview the tag. Fill in the "Stage verification" section.
-- Release and merge are owned by the user (project memory). This plan does not include them.
+- 本地 `pnpm dev:stage` **不算** MR 的验证（`CLAUDE.md`）。
+- MR 需要 stage 验证：`pnpm release` 发到 stage，再预览该 tag，并填写 "Stage verification" 一节。
+- release 和 merge 由用户负责（项目 memory），本计划不包含这两步。
 
-## 5. Suggested order
+## 5. 建议顺序
 
-1. Resolve section 1 and section 7 with the PRD owners. C1 and P1 come first, because they decide where the code goes.
-2. Task 1.1 and 1.2 (verify the existing Promotions route and existing data).
-3. Task 1.4 once C3 gives the privilege names.
-4. Tests for 2.2, 2.3, 3.3, 3.5 (write first).
-5. D2 cards (2.1 to 2.6), then D3 guides (3.1 to 3.10).
-6. Cross-cutting (4.1 to 4.6).
-7. Stage verification and MR (user-owned release).
+1. 与 PRD owner 解决第 1 节和第 7 节。先处理 C1 和 P1，因为它们决定代码放在哪里。
+2. 任务 1.1 和 1.2（验证现有 Promotions 路由和已有数据）。
+3. C3 给出权限名后做任务 1.4。
+4. 编写 2.2、2.3、3.3、3.5 的测试（先写）。
+5. D2 卡片（2.1 到 2.6），然后 D3 guide（3.1 到 3.10）。
+6. 横切任务（4.1 到 4.6）。
+7. Stage 验证和 MR（release 由用户负责）。
 
-## 6. Risks
+## 6. 风险
 
-| Risk | Mitigation |
+| 风险 | 缓解措施 |
 |---|---|
-| Live and Blocked rules are undefined (Q4, Q5) | Keep rules in one module so they change in one place. |
-| Promotions list endpoint is not confirmed (PRD R2) | Confirm the endpoint with the Catalog team before 2.2. Without it, cards never reach Live and "Review and activate" (D3-FR15) and "Create the codes" (D3-FR19) lose their signal, which breaks an exit criterion. Any fallback (for example "Available only" or partner confirmation) needs product sign-off first (P5, R2). Do not ship a fallback by default. |
-| Embedded Publisher Account screens link back out (R3) | Check during 1.1. If present, file the gap rather than rewriting the module. |
-| Guides replace the initial setup in the widget and entry points | Separate `advancedGuides` state (3.5) and a separate route (3.1). Covered by the State tests. |
-| Progress lost across devices or teammates | Shared storage per Q14 and P2. If interim `localStorage` ships, list the gap in the MR. |
-| Premium PC not delivered with F2P | C1 names the owner and plan. Shared parts go to `business-account-shared-library` (0.1). |
-| Two guides diverge from the Quick-Start guide | Reuse the engine's presentation parts; do not copy the Quick-Start code. |
-| Taxonomy sign-off slips (R1) | Build D1 and the registry first, which do not depend on it. |
+| Live 和 Blocked 规则未定义（Q4、Q5） | 规则集中在一个模块中，修改时只改一处。 |
+| Promotions 列表 endpoint 未确认（PRD R2） | 在 2.2 之前与 Catalog 团队确认 endpoint。没有它，卡片永远到不了 Live，"Review and activate"（D3-FR15）和 "Create the codes"（D3-FR19）也会失去信号，这会违反一条退出标准。任何降级方案（例如"只显示 Available"或改为伙伴确认）都要先经产品签字（P5、R2），不能默认上线。 |
+| 嵌入的 Publisher Account 页面有跳出账户的链接（R3） | 在 1.1 中检查。如果存在，记录为缺口，不要重写模块。 |
+| guide 在 widget 和入口中替换掉初始 setup | 独立的 `advancedGuides` 状态（3.5）和独立路由（3.1）。由 State 测试覆盖。 |
+| 跨设备或跨队友时进度丢失 | 按 Q14 和 P2 使用共享存储。如果过渡期用 `localStorage` 上线，在 MR 中列出该缺口。 |
+| Premium PC 没有与 F2P 同步交付 | C1 指定负责人和计划。共享部分放入 `business-account-shared-library`（0.1）。 |
+| 两个 guide 与 Quick-Start guide 实现分叉 | 复用引擎的展示部件，不复制 Quick-Start 代码。 |
+| Taxonomy 签字延期（R1） | 先做不依赖它的 D1 和注册表。 |
 
-## 7. Items to confirm
+## 7. 待确认项
 
-### PRD ambiguities (confirm with the PRD owners)
+### PRD 歧义（与 PRD owner 确认）
 
-| ID | Question | PRD ref | Plan default until answered | Blocks |
+| 编号 | 问题 | PRD 引用 | 答复前的计划默认 | 阻塞 |
 |---|---|---|---|---|
-| P1 | Where does the Advanced list live? Today Get Started is "one current setup plus its hub", and a partner who finished the initial setup is redirected to that hub. Which page shows the list, and where does the partner land after the initial setup? | D2-FR1, Q10, Q16 | Initial setup hub, its all-done final page, and the selection screen under `?switch=1` | 2.4 |
-| P2 | Are guide progress and "I've done this" confirmations shared by the project team or kept per user? Are they stored in the backend or locally? | D3-FR7, Q14 | Per project, interim `localStorage` (cross-device gap listed in the MR) | 3.5 |
-| P3 | D3-FR13, FR14, FR17, FR18 and FR20 have no "Done when". Are they detectable, confirmed by the partner, or informational? If they happen in the same Promotions form as the step that is detectable, must each one be confirmed? | D3-FR4, D3-FR5 | Informational: done when the next detectable step is done | 3.3 |
-| P4 | When the initial setup and both promotions guides are incomplete, which one does the floating widget show? | D3-FR10 | Initial setup first, then the most recently opened Advanced guide | 3.7 |
-| P5 | Type boundaries for Live: under which card does a bonus promotion count (Q6)? Does a promo code whose reward is a discount also make "Sales, discounts & offers" Live (Q4)? | D2-FR4, Q4, Q6 | Each card counts only its own promotion types | 2.2 |
+| P1 | Advanced 列表放在哪里？目前 Get Started 是"一个当前 setup 加它的 hub"，完成初始 setup 的伙伴会被重定向到该 hub。哪个页面显示这个列表？初始 setup 完成后伙伴落在哪个页面？ | D2-FR1、Q10、Q16 | 初始 setup 的 hub、它的完成页，以及 `?switch=1` 下的选择页 | 2.4 |
+| P2 | guide 进度和 "I've done this" 确认由项目团队共享，还是按用户保存？存在后端还是本地？ | D3-FR7、Q14 | 按项目保存，过渡期用 `localStorage`（在 MR 中列出跨设备缺口） | 3.5 |
+| P3 | D3-FR13、FR14、FR17、FR18 和 FR20 没有写 "Done when"。它们是可检测、需伙伴确认，还是仅作说明？如果它们与可检测步骤在同一个 Promotions 表单中完成，是否需要逐步确认？ | D3-FR4、D3-FR5 | 仅作说明：下一个可检测步骤完成时一并完成 | 3.3 |
+| P4 | 初始 setup 和两个 promotions guide 都未完成时，浮动 widget 显示哪一个？ | D3-FR10 | 先显示初始 setup，再显示最近打开的 Advanced guide | 3.7 |
+| P5 | Live 判定的类型边界：bonus promotion 计入哪张卡（Q6）？奖励为折扣的 promo code 是否也会让 "Sales, discounts & offers" 变为 Live（Q4）？ | D2-FR4、Q4、Q6 | 每张卡只统计自己的 promotion 类型 | 2.2 |
 
-### Delivery and access (confirm with the account leads)
+### 交付与权限（与账户负责人确认）
 
-| ID | Question | Blocks |
+| 编号 | 问题 | 阻塞 |
 |---|---|---|
-| C1 | Who delivers Premium PC, in `premium-pc-games`, and on what timeline? Which shared parts go to `business-account-shared-library`? | 0.1, exit criteria for Premium PC |
-| C2 | Is there a tracking-plan row for each PRD analytics event, with the field names for card state, account variant and capability id? | 4.1 |
-| C3 | What are the Publisher Account privilege names for viewing and managing Promotions? | 1.4 |
+| C1 | 谁在 `premium-pc-games` 中交付 Premium PC，时间表如何？哪些共享部分放入 `business-account-shared-library`？ | 0.1、Premium PC 的退出标准 |
+| C2 | 每个 PRD 埋点事件在 tracking plan 中是否有对应条目，以及 card state、account variant 和 capability id 的字段名？ | 4.1 |
+| C3 | Publisher Account 中查看和管理 Promotions 的权限名是什么？ | 1.4 |

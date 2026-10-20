@@ -1,0 +1,303 @@
+# 详细计划：Promotions Advanced feature（F2P）
+
+- **上级计划：** [promotions-advanced-dev-plan.md](promotions-advanced-dev-plan.md)（revision 2）
+- **PRD：** [promotions-advanced-prd.md](promotions-advanced-prd.md)
+- **共享基础：** [advanced-foundation-detail-plan.md](advanced-foundation-detail-plan.md)（步骤 `F-xx`）。本文只写 Promotions 自己的步骤 `PR-xx`。
+- **范围：** 只含 `free-to-play-pc`。Premium PC 见上级计划 C1。
+- **状态：** 草稿。每步的格式见基础文档的"阅读方法"。
+
+路径缩写同基础文档。新增：`PROMO` = `src/pages/GetStarted/advanced/promotions-discounts`，`CODES` = `src/pages/GetStarted/advanced/promo-codes-coupons`。
+
+## 步骤依赖图
+
+```mermaid
+flowchart TD
+  PR01[PR-01 验证嵌入模块] --> PR02[PR-02 权限缺口]
+  PR03[PR-03 稳定地址常量] --> PR06
+  PR04[PR-04 Promotions 读取 client] --> PR05[PR-05 Live 规则]
+  PR05 --> PR06[PR-06 注册两张卡片]
+  F[基础 F-01 到 F-11] --> PR07
+  F --> PR08
+  PR04 --> PR07[PR-07 Guide 1 配置与 verifier]
+  PR04 --> PR08[PR-08 Guide 2 配置与 verifier]
+  PR06 --> PR09[PR-09 接线]
+  PR07 --> PR09
+  PR08 --> PR09
+  PR09 --> PR10[PR-10 埋点接入]
+  PR09 --> PR11[PR-11 NFR 检查]
+```
+
+## 开发顺序
+
+| 阶段 | 步骤 | 原因 |
+|---|---|---|
+| A. 不依赖基础和未决事项 | PR-01、PR-03 | 只读验证和常量 |
+| B. 依赖外部答复 | PR-02（C3）、PR-04（R2） | 先写 client 接口和测试，真实 endpoint 等答复 |
+| C. 依赖基础 | PR-05 → PR-06 → PR-07、PR-08 | 基础 F-01 到 F-11 完成后 |
+| D. 收尾 | PR-09 → PR-10 → PR-11 | 需要完整链路 |
+
+---
+
+## PR-01 验证嵌入的 Promotions 模块
+
+- **对应：** 上级计划 1.1、1.2、1.3；PRD D1-FR1/FR3、R3。
+- **输入：** stage 环境；一个在 Publisher Account 里已有 promotions 的项目；`src/routes/inside/storefront.ts:5-11`、`src/layouts/storefront/index.tsx:63`（`RemoteModule name="storefront"`）。
+- **输出：** 一份验证记录（写进 MR 描述，不是代码）。表格式：
+
+  | 检查项 | 结果 | 缺口 |
+  |---|---|---|
+  | `/projects/:id/storefront/promotions` 在账户 shell 内渲染 | 是 / 否 | |
+  | 模块内是否有跳回 Publisher Account 的链接（逐个列出） | | |
+  | 已有 promotions 的状态、数值、兑换行为与 Publisher Account 一致 | | |
+  | LiveOps 下 Promotions 项在 F2P 账户可见 | | |
+
+- **要点：** 发现跳出链接时只记录，**不重写模块**（R3）。用 `pnpm dev:stage`（不是 `pnpm dev`）做本地预览，但它不算 MR 的 stage 验证。
+- **测试：** 无自动测试。Routing 层测试在 PR-02。
+- **完成标准：** 记录表填完；所有缺口已列出并有负责人。
+- **注意：** 这是手动步骤。按项目规则，release 和 stage 验证由用户负责，这一步不替用户做。
+
+## PR-02 补齐 Promotions 权限缺口
+
+- **对应：** 上级计划 1.4；D1-FR5、D1-US4。
+- **输入：**
+  - C3：Promotions 查看和管理的权限名（**阻塞**）。
+  - `nav-items-config.tsx:225-229`：Promotions 项，当前**无** `privileges`、无 `dataId`。
+  - `src/core/access/filter-accessible-nav-items.ts`：`privileges` 是"全部都要有"，admin 不绕过缺失的 privilege。
+  - `src/routes/inside/storefront.ts:5-11`：守卫是整个 `/storefront` 子树共用一份（需要 catalog、delivery、project-settings 权限）。
+- **输出：**
+  - Promotions 导航项加 `privileges: [<C3 权限名>]`，并加 `dataId`（便于测试按 id 查找）。
+  - Promotions 子路由的独立守卫：只有 Promotions 权限的用户也能打开 `/storefront/promotions`，没有该权限的用户打不开。
+- **要点：**
+  - 先在实现时确认 `route()` 是否支持子路由各自带 `privileges`。支持：在 `storefront.ts` 里为 `${path}/storefront/promotions` 声明独立子路由，放在通用 `/storefront` 之前。不支持：把守卫逻辑放进 `StorefrontContainer` 的路由匹配层。选择后在 MR 里写明原因。
+  - 不放宽 `/storefront` 其他子路径的权限。
+  - 权限名未知（C3）时，先写测试并用占位权限名，实现标 `it.skip`，启用条件：C3 答复。
+- **先写的测试：**
+  - `project-sidebar-v2/nav-items-config.test.tsx`（用现有 `buildItems()`）：没有 Promotions 权限 → Promotions 项不在结果里；有 → 在。
+  - `filter-accessible-nav-items.test.ts`：带 `privileges` 的 Promotions 形状的项被正确过滤。
+  - Routing 测试：只有 Promotions 权限的用户能打开子路由；有 catalog 权限但没有 Promotions 权限的用户打不开它。
+  - `rbac-contract.test.ts` 只测顶层 `dataId`，如果新增了 `dataId` 影响其矩阵断言，更新对应期望。
+- **完成标准：** 测试通过；其他 `/storefront` 子路径的访问规则不变。
+
+## PR-03 稳定地址常量
+
+- **对应：** 上级计划 1.5；D1-FR6。
+- **输入：** `nav-items-config.tsx:225-229` 里手写的路径 `/projects/${projectId}/storefront/promotions`。
+- **输出：** `ADV/links.ts`：
+  ```ts
+  promotionsPath(projectId: string | number): string   // → `/projects/${projectId}/storefront/promotions`
+  ```
+  `nav-items-config.tsx` 改为调用它。卡片和 guide 步骤也用它。
+- **要点：** 只抽取常量，不改变任何路径值。
+- **先写的测试：** `links.test.ts`：输出等于当前硬编码字符串；`nav-items-config.test.tsx` 中 Promotions 项的 `to` 不变。
+- **完成标准：** 全仓库没有第二处手写 `storefront/promotions`。
+
+## PR-04 Promotions 读取 client
+
+- **对应：** 上级计划 2.2；PRD R2。
+- **输入：** R2：Catalog 团队提供的 promotions 列表 endpoint（**阻塞真实实现**）。`src/core/apis/` 里没有 promotions、discount、coupon 文件。client 写法参考 `core/apis/catalog.ts`（`store-instance` 的 `get/post`，测试 `vi.mock('./store-instance', …)`）。
+- **输出：** `src/core/apis/promotions.ts`（只读）：
+  ```ts
+  type PromotionKind = 'discount' | 'bonus' | 'promocode' | 'coupon';
+  interface PromotionRef { id: string | number; kind: PromotionKind; isActive: boolean; name?: string }
+  listPromotions(projectId: string | number, kinds?: PromotionKind[]): Promise<PromotionRef[]>
+  ```
+- **要点：**
+  - 只读。不得调用任何创建、更新或 `ensure*` helper。
+  - 分页要处理到最后一页（参考 `listCatalogItemRefs` 的 limit 200、短页停止）。
+  - 把 endpoint 响应到 `PromotionRef` 的映射集中在一个函数 `normalizePromotion`。字段名以 R2 答复为准。
+  - R2 未答复时：写接口、`normalizePromotion` 的测试（用假定响应形状）和 `listPromotions` 的测试，全部带注释说明形状是假设。真实 endpoint 接入前，不得合并为"已实现"。
+  - 任何降级方案（例如只显示 Available）先要产品签字（上级计划风险表），不得默认上线。
+- **先写的测试：** `promotions.test.ts`
+  - 单页、多页（直到短页）。
+  - 空列表。
+  - 无效响应项被过滤，不抛错。
+  - HTTP 错误向上抛出（由调用方决定如何显示）。
+  - 真实 endpoint 的契约测试写成 `it.skip`，启用条件：R2 关闭。
+- **完成标准：** mock 下的测试通过；文件里没有写操作。
+
+## PR-05 Live 规则
+
+- **对应：** 上级计划 2.2；D2-FR4；Q4、Q6、P5。
+- **输入：** PR-04。
+- **输出：** `ADV/promotions-live.ts`：
+  ```ts
+  isDiscountsCardLive(refs: PromotionRef[]): boolean   // 存在 isActive 的 discount 或 bonus
+  isCodesCardLive(refs: PromotionRef[]): boolean       // 存在 isActive 的 promocode 或 coupon
+  ```
+  以及两个 `liveRule` 适配函数：`(ctx) => listPromotions(...).then(isXxxLive)`，供注册表使用（PR-06）。
+- **要点：**
+  - **默认（Q4、Q6、P5 未决）：** 每张卡只统计自己类型的 promotion。bonus 归 "Sales, discounts & offers"（PRD D2-FR3 写了"time-limited discounts and bonus rewards"）。奖励为折扣的 promo code 只让 "Promo codes & coupons" 变 Live。
+  - 规则只在这一个文件。Q4/Q6/P5 答复后只改这里。
+  - `isActive` 的判定（日期窗口、状态）由 client 的 `normalizePromotion` 完成，规则文件只读布尔值。
+- **先写的测试：** `promotions-live.test.ts`
+  - 只有 inactive → false。
+  - discount active → 卡 1 Live、卡 2 不 Live。
+  - bonus active → 卡 1 Live。
+  - promocode 或 coupon active → 卡 2 Live，卡 1 不 Live。
+  - 空数组 → 都不 Live。
+- **完成标准：** 测试通过。
+
+## PR-06 注册两张卡片
+
+- **对应：** 上级计划 2.1、2.5、2.6；D2-FR1、FR2、FR3、FR9。
+- **输入：** 基础 F-05（注册表类型）、F-12（卡片 UI）、PR-03、PR-05。
+- **输出：** 在 `ADVANCED_GUIDES` 中新增两条：
+
+  | id | order | `card.titleId`（en 文案） | `managePath` | `nextGuideId` |
+  |---|---|---|---|---|
+  | `promotions-discounts` | 10 | "Sales, discounts & offers" | `promotionsPath` | `promo-codes-coupons` |
+  | `promo-codes-coupons` | 20 | "Promo codes & coupons" | `promotionsPath` | `promotions-discounts` |
+
+  描述写出：卡 1 点名限时折扣和奖励（discounts and bonus rewards）；卡 2 点名 promo code 和 coupon。`examplesId` 给 F2P 示例（virtual item、currency pack）。
+- **要点：**
+  - 文案 key：`host.pages.getStarted.advanced.promotionsDiscounts.card.*`、`...promoCodesCoupons.card.*`。
+  - "Promo codes & coupons" 在 taxonomy 里没有短描述（PRD Q6）。先写一句默认描述，在 MR 里标注"待产品确认"。
+  - `ADVANCED_GUIDES` 里每条的 `setup` 在 PR-07、PR-08 完成前先用 `steps: []` 的占位。基础的注册表测试要求最后一步不是 `info`，所以占位阶段该校验只在 `steps.length > 0` 时执行；或者等 PR-07、PR-08 一起提交。选后者，避免弱化校验。
+- **先写的测试：**
+  - 两张卡片出现在 `getOrderedAdvancedGuides()` 中，顺序为 卡 1、卡 2。
+  - 两张卡片不出现在 `SETUPS`，不出现在 "Start with" 网格（D2-FR1）。
+  - 卡片 Live 状态按 PR-05 的规则（mock `listPromotions`）。
+- **完成标准：** 测试通过；`SetupSelection` 渲染结果不变。
+
+## PR-07 Guide 1：Sales, discounts & offers
+
+- **对应：** 上级计划 3.1 到 3.4、3.9；D3-FR12 到 D3-FR16。
+- **输入：** 基础 F-02（kind 规则）、F-05；PR-03、PR-04；`GS/setups/shared-verifiers.ts` 的 `verifyItemCatalog`。
+- **输出：** 目录 `PROMO/`：
+  - `config.tsx`：`SetupConfig<'promotions-discounts'>`，5 个步骤，见下表。
+  - `verifiers.ts`：`verifyActivePromotion`。
+
+  | # | 步骤 id | 标题（en） | kind | 完成条件 | 按钮目标 |
+  |---|---|---|---|---|---|
+  | 1 | `choose-items` | Choose what to promote | detect | 至少有一个 catalog item：复用 `verifyItemCatalog`（包含 item 和 bundle） | `/projects/:id/storefront`（Catalog） |
+  | 2 | `choose-offer` | Choose the offer | info | 随步骤 4 完成（P3 默认） | `promotionsPath` |
+  | 3 | `schedule-limits` | Set schedule and limits | info | 随步骤 4 完成（P3 默认） | `promotionsPath` |
+  | 4 | `review-activate` | Review and activate | detect | `verifyActivePromotion`：存在 active 的 discount 或 bonus | `promotionsPath` |
+  | 5 | `check-store` | Check it in your store | confirm | 伙伴点 "I've done this"（Q15 默认接受） | storefront 地址 |
+
+  Overview 内容（D3-FR2）：目标（让一个限时折扣或奖励在 store 上线）；将完成的内容；"before you start"：要打折的 item、折扣幅度或奖励内容、开始和结束日期、可选的地区和每人限制。
+- **要点：**
+  - `verifyActivePromotion`：`listPromotions(projectId, ['discount','bonus'])`，返回 `isDiscountsCardLive` 的同一规则，**不再写第二套**。直接调用 PR-05 的函数。
+  - 只读。不调用 `ensure*`。
+  - 步骤 2、3 为 `info`：伙伴在 Promotions 表单里一次完成它们，没有分别的信号。Next 移动位置，不完成。P3 答复后若要改成 confirm，只改这个文件的两个步骤。
+  - 步骤 1 的 `verifyItemCatalog` 用的是 `listCatalogItemRefs`（含分页），不检查 type。这符合 D3-FR12 "至少有一个 catalog item"。
+  - 每个步骤只有一个按钮（D3-FR3），目标是现有页面，不在 guide 内重做表单。
+  - 文案：`host.pages.getStarted.advanced.promotionsDiscounts.*`，含 `overview.*`、`steps.<id>.*`、`confirm.*`、`success.*`。
+- **先写的测试：**
+  - `verifiers.test.ts`：mock `listPromotions`；无 active → `false`；有 active discount → `true`；只有 active promocode → `false`；API 报错 → 抛出或返回 `undefined`（与 `useSetupStatus` 的 `readVerdict` 约定一致，实现时对照 `useSetupStatus.ts:45-52`）。
+  - `config.test.tsx`：5 个步骤；kind 分别为 detect、info、info、detect、confirm；最后一步是 confirm；每个 `hub` 或步骤都有 `titleId`、按钮目标。
+  - 集成（Component）：步骤 4 的检测结果为 `false` 时，点 Next 越过步骤 2、3 后，步骤 4 仍为当前步骤；检测为 `true` 后步骤 2、3、4 同时完成，当前步骤是 5。
+  - 步骤 5：Next 和 Skip 都不能完成它；点确认后完成，guide 进入成功页。
+- **完成标准：** 测试通过；`config.tsx` 没有硬编码英文文案。
+
+## PR-08 Guide 2：Promo codes & coupons
+
+- **对应：** 上级计划 3.1 到 3.4、3.8、3.9；D3-FR17 到 D3-FR22。
+- **输入：** 同 PR-07。
+- **输出：** 目录 `CODES/`：`config.tsx`、`verifiers.ts`（`verifyCodeExists`）。
+
+  | # | 步骤 id | 标题（en） | kind | 完成条件 | 按钮目标 |
+  |---|---|---|---|---|---|
+  | 1 | `choose-reward` | Choose the reward | info | 随步骤 3 完成 | `promotionsPath`（D3-FR3：每步一个按钮） |
+  | 2 | `choose-code-type` | Choose the code type | info + 双路径 | 随步骤 3 完成；路径记入状态 | `PathChooser` |
+  | 3 | `create-codes` | Create the codes | detect | `verifyCodeExists`：存在 promocode 或 coupon | `promotionsPath` |
+  | 4 | `validity-limits` | Set validity and limits | info | 随步骤 5 完成 | `promotionsPath` |
+  | 5 | `let-players-redeem` | Let players redeem | confirm | 伙伴确认 | storefront 地址 |
+  | 6 | `test-redemption` | Test a redemption | confirm | 伙伴确认 | storefront 地址（在 store 里兑换） |
+
+  双路径（步骤 2）：`shared-code`（shared promo code）、`one-time-coupon`（one-time coupon linked to a predefined offer）。只显示所选路径的说明，另一条仍可选（D3-FR6）。
+- **要点：**
+  - **注意 info 的推导：** 步骤 1 跟随步骤 3（下一个非 info），步骤 2 跟随步骤 3，步骤 4 跟随步骤 5（下一个非 info 是 confirm 步骤）。所以步骤 4 要等步骤 5 被确认才算完成。实现 F-02 时用这条规则，并让步骤 4 的 UI 文案不依赖"已完成"状态。
+  - `verifyCodeExists`：`listPromotions(projectId, ['promocode','coupon'])`，复用 `isCodesCardLive` 的规则。
+  - 步骤 3 的 "bulk upload"（Q13）：Publisher Account 的 bulk 上传随它自己上线，本仓库不做任何工作。步骤说明里不承诺上传。
+  - 步骤 5、6 顺序上都是 confirm。步骤 6 在步骤 5 确认之前不可确认：`ConfirmControl` 在非当前步骤时禁用。
+  - 文案前缀 `host.pages.getStarted.advanced.promoCodesCoupons.*`。
+- **先写的测试：**
+  - `verifiers.test.ts`：无 code → `false`；有 active promocode → `true`；有 coupon → `true`；只有 active discount → `false`。
+  - `config.test.tsx`：6 个步骤；kind 序列 info、info、detect、info、confirm、confirm；步骤 2 有两条路径。
+  - 路径持久化：选 `one-time-coupon` 后重新挂载仍是该路径，且只显示该路径说明；再选 `shared-code` 能切换。
+  - 步骤 3 为 `true` 后，步骤 1、2、3 完成，当前步骤变为 4。
+  - 步骤 5、6：Next 和 Skip 都不能完成；确认后各自完成。
+  - 步骤 6 在步骤 5 未确认时，确认控件禁用。
+- **完成标准：** 测试通过。
+
+## PR-09 接线
+
+- **对应：** 上级计划 2.4、3.6、3.7；D2、D3-FR8 到 FR10。
+- **输入：** PR-05 到 PR-08；基础 F-08、F-10、F-12、F-13、F-14。
+- **输出：**
+  - `ADVANCED_GUIDES` 中两条的 `setup`、`liveRule`、`nextGuideId`、`overview` 全部填好。
+  - 成功页摘要：guide 1 写出已设置的 promotion（"Your discount or bonus is live"）；guide 2 写出已设置的 code。
+  - Live 卡片 "Open" → `promotionsPath`；"View guide" 或 "Resume guide" 行为来自基础 F-12。
+- **要点：**
+  - **End to end 行为：** 初始 setup 完成 → 卡片 Available → "Set up" → overview → 步骤 → 成功页 → 卡片在下一次页面加载变为 Live（由 `liveRule` 判定，不由 guide 完成写入）。
+  - 完成 guide 但账户没有 active promotion（例如伙伴只确认了步骤、没有 detect 步骤满足）是不可能的：detect 步骤 4（guide 1）和 3（guide 2）必须为真才能到最后一个 confirm。这是不变量，加测试。
+  - Promotions 不使用 `target`、`snapshot`。
+- **先写的测试（Component / State）：**
+  - 全流程：mock `listPromotions` 从空变为有 active discount，guide 1 从步骤 1 走到成功页。
+  - 完成后再次渲染卡片，状态为 Live（mock 返回有 active discount）。
+  - 不变量：mock 永远返回空，则 guide 无法完成，即使伙伴点遍所有 confirm。
+  - 打开 guide 不改变 `currentSetupId`、widget 对初始 setup 的显示、`SetupProgressBadge`。
+  - 成功页的"推荐下一个"：guide 1 → guide 2；guide 2 → guide 1。
+- **完成标准：** 测试通过。
+
+## PR-10 埋点接入
+
+- **对应：** 上级计划 4.1；PRD Analytics NFR。
+- **输入：** 基础 F-15；C2。
+- **输出：** 在以下位置调用 `trackAdvanced`：
+
+  | 事件 | 触发点 | 字段 |
+  |---|---|---|
+  | `card_click` | `AdvancedCard` 主按钮、"View guide"/"Resume guide" 点击（Blocked 不触发） | capability、cardState |
+  | `guide_opened` | `AdvancedGuideScreen` 挂载一次 | capability、cardState（打开时的状态） |
+  | `step_started` | 步骤按钮点击（D3-FR3 的那个按钮） | capability、step |
+  | `guide_completed` | run 进入 `completedAt` 时一次 | capability |
+
+- **要点：** `guide_opened` 每次挂载只发一次，不因重渲染重复发送。`card_state` 是点击或打开那一刻的值。
+- **先写的测试：** 对每个触发点，断言 `trackAdvanced` 被调用且字段齐全；Blocked 卡片点击不发事件；重渲染不重复发 `guide_opened`。
+- **完成标准：** 测试通过。事件名占位，C2 关闭后替换（基础 F-15）。
+
+## PR-11 NFR 检查
+
+- **对应：** 上级计划 4.2 到 4.6。
+- **输入：** PR-09 完成的链路。
+- **输出：** 检查记录（MR 描述）。
+
+  | 项 | 检查方式 | 判定 |
+  |---|---|---|
+  | 无障碍：badge 与步骤状态有文字；按钮键盘可达 | Component 测试（已在 F-11、F-12） + 手动 Tab 走一遍 | 全部通过 |
+  | Admin 标注 | Component 测试（F-16） | admin 可见标注 |
+  | 性能：卡片和 guide 3 秒内可交互；每次加载只取一次卡片状态 | `useAdvancedCards` 测试（每个 `liveRule` 一次） + 手动计时 | 3 秒内 |
+  | 布局：1366x768、13 英寸 Mac | 手动；可选 `pnpm test:e2e:visual` 基线 | 无溢出、无遮挡 |
+  | 过期数据：旧版本的 guide 进度不破坏新步骤 | F-03 的版本测试 + 一个单测：存储里的 `confirmedStepIds` 含已不存在的 step id 时，忽略该 id | 不抛错，不影响当前步骤 |
+
+- **完成标准：** 表格全部填完。手动项由执行者记录；release 和 stage 验证由用户负责，不在本步骤里。
+
+---
+
+## 自动化测试清单（汇总）
+
+| 层级 | 文件 | 来自步骤 |
+|---|---|---|
+| Unit | `promotions-live.test.ts`、两个 `verifiers.test.ts`、两个 `config.test.tsx`、`links.test.ts`、`promotions.test.ts` | PR-03 到 PR-08 |
+| Component | guide 全流程、成功页、卡片状态、路径持久化 | PR-06 到 PR-09 |
+| State | 打开 guide 不改变 `currentSetupId`；Blocked → Available | PR-09、F-10 |
+| Access | `nav-items-config.test.tsx`、`filter-accessible-nav-items.test.ts` | PR-02 |
+| Routing | Promotions 子路由守卫 | PR-02 |
+| Analytics | 每个事件字段齐全 | PR-10 |
+| Accessibility | 文字标签、键盘 | F-11、F-12、PR-11 |
+| Locale | `locales/index.test.ts` | 每一步 |
+| Skipped（未来行为） | R2 真实 endpoint 契约；测试购买和兑换的自动检测；C3 权限名；C2 事件名 | PR-02、PR-04、PR-10 |
+
+## 本计划的外部依赖
+
+| 编号 | 需要什么 | 谁答复 | 影响的步骤 | 答复前的做法 |
+|---|---|---|---|---|
+| R2 | promotions 列表 endpoint 与响应形状 | Catalog 团队 | PR-04、PR-05、PR-07、PR-08 | 接口加 mock 测试；真实 endpoint 的测试 skip |
+| C3 | Promotions 权限名 | 账户负责人 | PR-02 | 占位权限名；实现 skip |
+| Q4/Q6/P5 | Live 规则 | PRD owner | PR-05 | 默认值见 PR-05 |
+| P3 | 无 "Done when" 步骤的类型 | PRD owner | PR-07、PR-08 | 默认 `info` |
+| Q15 | 是否接受伙伴确认的测试步骤 | PRD owner | PR-07、PR-08 | 默认接受 |
+| C2 | 埋点名与字段 | 数据团队 | PR-10 | 占位 |
+| Q13 | bulk 上传 | Catalog 团队 | PR-08 | 不承诺上传 |

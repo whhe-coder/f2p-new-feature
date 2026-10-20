@@ -67,8 +67,60 @@ flowchart TD
 
 ---
 
+## 工期预估
+
+**单位与假设：** 人天，一名熟悉 `free-to-play-pc` 的前端开发。**不含写测试的时间**：每步的"先写的测试"只是规格，测试由 AI 生成。**也不含**：审查 AI 生成的测试、运行测试和修失败（项目规则：除非用户要求，不运行）、MR review 往返、等待外部答复、stage 验证、release 和 merge（用户负责）、Premium PC。这些是粗估，不是承诺；每步的风险等级写在该步的"预估"一行里。
+
+| 范围 | 人天 | 说明 |
+|---|---|---|
+| 基础 F-01 到 F-17 | 13.75 | 其中 F-10 占 2.5，F-12、F-13 各占 1.5 |
+| Promotions PR-01 到 PR-11 | 8 | 真实 endpoint 接入（R2 答复后）另加约 0.5 |
+| Bundles BU-01 到 BU-13 | 10.75（fallback 模式）；12.75（加 frame，BU-10 的 2） | |
+| **合计** | **32.5**；加 frame 和真实 endpoint 约 **35** | |
+| 加 20% 缓冲（review 往返、返工、联调） | 约 **39 到 42** | 单人串行约 8 周（每周 5 天） |
+
+**两人并行的排法（估算）：**
+
+| 阶段 | 内容 | 工作日 | 说明 |
+|---|---|---|---|
+| 1 | 基础关键路径 F-01 → F-02 → F-05 → F-11 → F-10 → F-09（约 5.75），加 F-03、F-04 | 约 7 | 同时另一人做不依赖基础的纯逻辑：PR-03、PR-04、PR-05、BU-01、BU-02、BU-04 的纯函数（约 4） |
+| 2 | 基础剩余（F-06 到 F-08、F-12 到 F-16，约 6） | 约 3 | 两人分担 |
+| 3 | Promotions（PR-06 到 PR-11，约 5）和 Bundles（BU-03 到 BU-13，约 8.25）并行 | 约 9 | 受 Bundles 约束，它是较长的一边 |
+| 合计 | | 约 **19 个工作日，4 周左右**；加缓冲约 **4 到 5 周** | |
+
+### vibe coding 口径（AI 写代码，人审查和验证）
+
+上面的数字按"人手写代码"估。如果由 AI 生成代码，人负责提规格、审查、跑检查和手动验证，估算如下。**折算系数是经验假设，没有实测数据。**
+
+| 类别 | 原人天 | 系数 | 折后 | 包含 |
+|---|---|---|---|---|
+| 低风险 | 7.75 | ×0.3 | 2.3 | 纯函数、类型、常量、展示组件 |
+| 中风险 | 18 | ×0.5 | 9 | slice、hook、verifier、配置、接线 |
+| 高风险 | 4.5 | ×0.7 | 3.15 | F-10、BU-06（要读懂 `SetupWizard` 和 status 引擎） |
+| 手动工作 | 2.25 | ×1.0 | 2.25 | PR-01、PR-11、BU-01a 探测、BU-13 手动检查 |
+| **小计（只算写代码）** | 32.5 | | **约 17** | |
+| 加审查 diff、跑 `type-check`、`lint:fix`、测试并修失败（约 +25%） | | | **约 21** | |
+| 再加 20% 缓冲 | | | **约 25** | 单人约 5 周 |
+| 加 frame 和真实 endpoint | | | 约 +1.5 到 2 | |
+
+相比手写口径（32.5，含缓冲 39），约省 35% 到 40%。
+
+**为什么没有更快：**
+- 耗时大头不是打字。F-04、F-10 这类要读懂现有引擎的步骤，AI 省下的有限，生成错了还要人看出来。
+- 外部等待（R2、C3、Q4/C4、设计稿）不变，日历时间很可能由它们决定。
+- vibe coding 的瓶颈是"人来审查"，两人并行的收益比手写时小。
+
+**最可能偏差大的步骤：** F-10、BU-06、F-04。AI 在这三步反复出错时，实际可能接近手写口径。如果有以前用 AI 做类似功能（例如 `creator-campaign`）的实际耗时，可据此重新校准系数。
+
+**风险最高的四步：** F-10（2.5）、BU-06（2）、BU-10（2，且阻塞于 Q4/C4）、F-13（1.5）。这四步的预估误差最可能超过 50%。
+
+**会拉长工期的外部因素：** R2（Promotions 列表 endpoint）、C3（权限名）、Q4/C4（frame）、Q5（初始 setup 规则变化）。它们的答复时间不在上面的数字里。
+
+**没算进去但会发生的事：** AI 生成的测试要有人看。测试写的是行为规格，AI 容易生成"能通过但没验证关键行为"的测试，尤其是 F-04（pin 轮数）、F-10（run 规则）和 BU-10（后端滞后）。这些步骤的测试建议人工过一遍。
+
 ## F-01 `SetupConfig` 泛型化
 
+- **预估：** 0.75 人天（风险：低。只改类型，要逐个收窄受影响的文件）
 - **输入：** `SW/types.ts` 现状。`SetupConfig.id: SetupPathId`（:330-378）；`StepProps.setupId: SetupPathId`（:37-89）。
 - **输出：**
   - `SetupConfig<Id extends string = SetupPathId>`，`id: Id`。
@@ -84,6 +136,7 @@ flowchart TD
 
 ## F-02 步骤字段与进度推导（纯函数）
 
+- **预估：** 0.5 人天（风险：低。纯函数）
 - **输入：** F-01。
 - **输出：**
   - `WizardStep` 新增可选字段（`SW/types.ts`）：
@@ -122,6 +175,7 @@ flowchart TD
 
 ## F-03 `advancedGuides` 状态 slice
 
+- **预估：** 1 人天（风险：中。新 slice、持久化 listener、store 注册）
 - **输入：** `SLICE/getStartedLocal.ts` 的写法（`createSlice`、`prepare` 加 `at`、`isAnyOf` listener、`MAX_PERSISTED_PROJECTS = 20`）。F-02。
 - **输出：** 新文件 `SLICE/advancedGuides.ts`，并在 `@core/store` 注册 reducer 和 listener middleware。
   - localStorage key：`f2p.advancedGuides`。独立 `SCHEMA_VERSION = 1`。
@@ -161,6 +215,7 @@ flowchart TD
 
 ## F-04 status key 与 verifier ctx
 
+- **预估：** 1 人天（风险：中。三处联动；要保证旧测试不动）
 - **输入：** `SW/types.ts:134-152`（`StepVerifier` ctx）；`SW/useSetupStatus.ts:54-65,126-129,149-154,162,183-188`；`SLICE/getStartedStatus.ts:31,89`。
 - **输出：**
   - `statusKey(projectId, setupId, runId?)`：有 `runId` 时返回 `${projectId}:${setupId}:${runId}`，否则保持 `${projectId}:${setupId}`。
@@ -189,6 +244,7 @@ flowchart TD
 
 ## F-05 注册表与 guide 配置类型
 
+- **预估：** 0.75 人天（风险：低。类型、注册表、路径函数）
 - **输入：** F-01、F-02。`SETUPS` 在 `GS/setups/index.ts`。
 - **输出：** 新文件：
   - `ADV/types.ts`：
@@ -229,6 +285,7 @@ flowchart TD
 
 ## F-06 "初始 setup 完成"规则
 
+- **预估：** 0.75 人天（风险：中。要读 `useSetupProgress` 的内部行为，Q5 可能改规则）
 - **输入：** `GS/useSetupProgress.ts`（返回 `complete`、`cleared`、`total`、`blocked`、`config`）；Q5 未决。
 - **输出：** 新文件：
   - `ADV/cards/initialSetupRule.ts`（纯函数，集中所有 Q5 逻辑）：
@@ -257,6 +314,7 @@ flowchart TD
 
 ## F-07 卡片状态解析（纯函数）
 
+- **预估：** 0.25 人天（风险：低。纯函数）
 - **输入：** F-06；每个 guide 的 `liveRule` 结果；F-03 的 run 状态。
 - **输出：** `ADV/cards/resolveCardState.ts`：
   ```ts
@@ -282,6 +340,7 @@ flowchart TD
 
 ## F-08 `useAdvancedCards` hook
 
+- **预估：** 1 人天（风险：中。去重取数、失败隔离）
 - **输入：** F-03、F-05、F-06、F-07。
 - **输出：** `ADV/cards/useAdvancedCards.ts`：
   ```ts
@@ -309,6 +368,7 @@ flowchart TD
 
 ## F-09 路由
 
+- **预估：** 0.25 人天（风险：低。两条路由）
 - **输入：** F-05（`paths.ts`）、F-10（`AdvancedGuideScreen`）。`src/routes/inside/get-started.ts:13-20`（父路由非 exact；两个 exact 子路由）。
 - **输出：** 在同一个文件新增两条 exact 子路由：
   - `${root}/get-started/advanced/:guideId` → `AdvancedGuideScreen`（F-10）
@@ -329,6 +389,7 @@ flowchart TD
 
 ## F-10 `AdvancedGuideScreen`
 
+- **预估：** 2.5 人天（风险：高。最大的一步：screen、context、run 规则、接入 `SetupWizard`）
 - **输入：** F-02、F-03、F-04、F-05（含 `paths.ts`）、F-11。`GS/SetupScreen.tsx` 的渲染部分（`SetupWizard`、`SetupHub` 的 props，见"与现状核对的结果"）。
 - **输出：** `ADV/guide/AdvancedGuideScreen.tsx`、`ADV/guide/useAdvancedGuide.ts`、`ADV/guide/AdvancedGuideContext.tsx`、`ADV/guide/runIntent.ts`。
   - **`AdvancedGuideContext`（步骤组件的接线方式）。** `SetupWizard` 只给步骤组件传 `StepProps`（`SetupWizard.tsx:389-403`），所以 guide 的能力不能走 props。`AdvancedGuideScreen` 用 context 提供：
@@ -398,6 +459,7 @@ flowchart TD
 
 ## F-11 Overview 与步骤控件
 
+- **预估：** 1 人天（风险：低。四个展示组件，含无障碍）
 - **输入：** F-02、F-03。`SW/types.ts` 的 `StepProps`。
 - **输出：** `ADV/guide/` 下的组件：
   - `GuideOverview.tsx`：属性 `{ config: AdvancedGuideConfig; onStart(): void }`。显示目标、步骤数（`config.setup.steps.length`，自动计算）、"What you'll do"、"Before you start" 清单、"Start" 按钮。
@@ -417,6 +479,7 @@ flowchart TD
 
 ## F-12 `AdvancedList` 与卡片 UI
 
+- **预估：** 1.5 人天（风险：中。卡片 UI、三个挂载点（要先定位 hub、完成页组件））
 - **输入：** F-08；`GS/setup-hub/` 和完成页的挂载点（实现时先定位组件文件）；`GS/selection/SelectionScreen.tsx`。
 - **输出：**
   - `ADV/cards/AdvancedCard.tsx`：属性 `{ card: ReturnType<useAdvancedCards>['cards'][number]; onPrimary(); onViewGuide?() }`。
@@ -443,6 +506,7 @@ flowchart TD
 
 ## F-13 Widget 扩展
 
+- **预估：** 1.5 人天（风险：中。要改现有 widget 和候选逻辑，不能影响初始 setup 的显示）
 - **输入：** F-03；`useSetupProgress.ts`；`src/components/SetupGuideWidget/SetupGuideWidget.tsx`、`SetupGuideWidgetCard.tsx`。
 - **输出：**
   - `ADV/widget/useActiveAdvancedGuide.ts`：返回 `{ guideId; capabilityTitleId; resumeStepLabelId; stepUrl; guideUrl } | null`（url 带 merchant 前缀）。
@@ -465,6 +529,7 @@ flowchart TD
 
 ## F-14 成功页与完成
 
+- **预估：** 0.25 人天（风险：低。单个展示组件）
 - **输入：** F-02、F-03、F-05。
 - **输出：** `ADV/guide/GuideSuccess.tsx`：属性 `{ config; summaryIds: string[]; summaryValues?: Record<string,string>; managePath?: string; nextGuide?: AdvancedGuideConfig }`。
 - **要点：**
@@ -478,6 +543,7 @@ flowchart TD
 
 ## F-15 埋点
 
+- **预估：** 0.5 人天（风险：低。事件名占位）
 - **输入：** `SW/guideAnalytics.ts`（`useGuideTracker`）；`src/core/utils/analytics/platform-events.ts`；`src/core/utils/analytics/platform-analytics.ts:35`（`trackClick`）。C2 未决。
 - **输出：**
   - `ADV/analytics.ts`：
@@ -498,6 +564,7 @@ flowchart TD
 
 ## F-16 Admin 标注与账户变体
 
+- **预估：** 0.25 人天（风险：低。标注组件和变体常量）
 - **输入：** `useSetupProgress.ts:117`（admin 放行）；`selectCurrentUserIsAdmin`。
 - **输出：**
   - `ADV/variant.ts`：`export const ACCOUNT_VARIANT = 'f2p' as const;`，以及 `variantKey(base: string): string`，在 content model 中取变体文案。
@@ -510,6 +577,7 @@ flowchart TD
 
 ## F-17 Locale 约定
 
+- **预估：** 不计（风险：—。约定，工作量已含在各步骤的 locale 改动里）
 - **输入：** `src/locales/en.json`；`src/locales/index.test.ts`。
 - **输出：** 本文档规定的 key 前缀：
   - 共享：`host.pages.getStarted.advanced.common.*`（overview 标签、确认控件、可选标签、路径选择、成功页通用文案、admin 标注、卡片 badge 和按钮）。

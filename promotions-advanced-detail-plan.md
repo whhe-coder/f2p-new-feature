@@ -38,8 +38,21 @@ flowchart TD
 
 ---
 
+## 工期预估
+
+人天，**不含写测试**（由 AI 生成），不含运行测试、review、等待答复和 stage 验证。假设与总表见 [基础文档的"工期预估"](advanced-foundation-detail-plan.md)。
+
+| 阶段 | 步骤 | 人天 |
+|---|---|---|
+| A | PR-01（0.5）、PR-03（0.25） | 0.75 |
+| B | PR-02（1）、PR-04（1） | 2 |
+| C | PR-05（0.25）、PR-07（1.25）、PR-08（1.5）、PR-06（0.25） | 3.25 |
+| D | PR-09（0.75）、PR-10（0.5）、PR-11（0.75） | 2 |
+| **合计** | | **8**（R2 答复后接入真实 endpoint 另加约 0.5） |
+
 ## PR-01 验证嵌入的 Promotions 模块
 
+- **预估：** 0.5 人天（风险：低。手动验证并写记录）
 - **对应：** 上级计划 1.1、1.2、1.3；PRD D1-FR1/FR3、R3。
 - **输入：** stage 环境；一个在 Publisher Account 里已有 promotions 的项目；`src/routes/inside/storefront.ts:5-11`、`src/layouts/storefront/index.tsx:63`（`RemoteModule name="storefront"`）。
 - **输出：** 一份验证记录（写进 MR 描述，不是代码）。表格式：
@@ -58,6 +71,7 @@ flowchart TD
 
 ## PR-02 补齐 Promotions 权限缺口
 
+- **预估：** 1 人天（风险：中。先确认 `route()` 是否支持子路由守卫；权限名等 C3）
 - **对应：** 上级计划 1.4；D1-FR5、D1-US4。
 - **输入：**
   - C3：Promotions 查看和管理的权限名（**阻塞**）。
@@ -80,6 +94,7 @@ flowchart TD
 
 ## PR-03 稳定地址常量
 
+- **预估：** 0.25 人天（风险：低。抽常量）
 - **对应：** 上级计划 1.5；D1-FR6。
 - **输入：** `nav-items-config.tsx:225-229` 里手写的路径 `/projects/${projectId}/storefront/promotions`。
 - **输出：** `ADV/links.ts`：
@@ -97,6 +112,7 @@ flowchart TD
 
 ## PR-04 Promotions 读取 client
 
+- **预估：** 1 人天（风险：中。client；真实 endpoint 接入另加约 0.5，等 R2）
 - **对应：** 上级计划 2.2；PRD R2。
 - **输入：** R2：Catalog 团队提供的 promotions 列表 endpoint（**阻塞真实实现**）。`src/core/apis/` 里没有 promotions、discount、coupon 文件。client 写法参考 `core/apis/catalog.ts`（`store-instance` 的 `get/post`，测试 `vi.mock('./store-instance', …)`）。
 - **输出：** `src/core/apis/promotions.ts`（只读）：
@@ -122,6 +138,7 @@ flowchart TD
 
 ## PR-05 Live 规则
 
+- **预估：** 0.25 人天（风险：低。几个纯函数）
 - **对应：** 上级计划 2.2；D2-FR4；Q4、Q6、P5。
 - **输入：** PR-04。
 - **输出：** `ADV/promotions-live.ts`：
@@ -145,6 +162,7 @@ flowchart TD
 
 ## PR-06 注册两张卡片
 
+- **预估：** 0.25 人天（风险：低。注册两条元数据）
 - **对应：** 上级计划 2.1、2.5、2.6；D2-FR1、FR2、FR3、FR9。
 - **输入：** 基础 F-05（注册表类型）、F-12（卡片 UI）、PR-03、PR-05、**PR-07、PR-08**（两个 guide 的 `setup` 和 `overview`）。
 - **输出：** 在 `ADVANCED_GUIDES` 中新增两条，字段一次填齐（`setup`、`overview`、`liveRule`、`nextGuideId`、`managePath`）：
@@ -167,6 +185,7 @@ flowchart TD
 
 ## PR-07 Guide 1：Sales, discounts & offers
 
+- **预估：** 1.25 人天（风险：中。5 个步骤、verifier、overview）
 - **对应：** 上级计划 3.1 到 3.4、3.9；D3-FR12 到 D3-FR16。
 - **输入：** 基础 F-02（kind 规则）、F-05；PR-03、PR-04；`GS/setups/shared-verifiers.ts` 的 `verifyItemCatalog`。
 - **输出：** 目录 `PROMO/`：
@@ -207,6 +226,7 @@ flowchart TD
 
 ## PR-08 Guide 2：Promo codes & coupons
 
+- **预估：** 1.5 人天（风险：中。6 个步骤、双路径）
 - **对应：** 上级计划 3.1 到 3.4、3.8、3.9；D3-FR17 到 D3-FR22。
 - **输入：** 同 PR-07。
 - **输出：** 目录 `CODES/`：`config.tsx`、`verifiers.ts`（`verifyCodeExists`）。
@@ -246,6 +266,7 @@ flowchart TD
 
 ## PR-09 接线
 
+- **预估：** 0.75 人天（风险：中。端到端接线）
 - **对应：** 上级计划 2.4、3.6、3.7；D2、D3-FR8 到 FR10。
 - **输入：** PR-05 到 PR-08；基础 F-08、F-10、F-12、F-13、F-14。
 - **输出：**
@@ -267,6 +288,7 @@ flowchart TD
 
 ## PR-10 埋点接入
 
+- **预估：** 0.5 人天（风险：低。4 个触发点，事件名占位）
 - **对应：** 上级计划 4.1；PRD Analytics NFR。
 - **输入：** 基础 F-15；C2。
 - **输出：** 在以下位置调用 `trackAdvanced`：
@@ -284,6 +306,7 @@ flowchart TD
 
 ## PR-11 NFR 检查
 
+- **预估：** 0.75 人天（风险：低。NFR 的手动检查和记录）
 - **对应：** 上级计划 4.2 到 4.6。
 - **输入：** PR-09 完成的链路。
 - **输出：** 检查记录（MR 描述）。

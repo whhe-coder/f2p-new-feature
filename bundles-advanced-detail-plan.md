@@ -51,8 +51,22 @@ flowchart TD
 
 ---
 
+## 工期预估
+
+人天，**不含写测试**（由 AI 生成），不含运行测试、review、等待答复和 stage 验证。假设与总表见 [基础文档的"工期预估"](advanced-foundation-detail-plan.md)。
+
+| 阶段 | 步骤 | 人天 |
+|---|---|---|
+| A 纯逻辑 | BU-01（1.5）、BU-02（0.5）、BU-04 纯函数（0.5） | 2.5 |
+| B fallback 模式 guide | BU-03（1.25）、BU-07（0.25）、BU-04b（1）、BU-05（0.25）、BU-06（2）、BU-08（1）、BU-09（不计） | 5.75 |
+| C 收尾 | BU-11（1）、BU-12（0.5）、BU-13（1） | 2.5 |
+| **fallback 模式合计** | | **10.75** |
+| D frame 模式 | BU-10（2，阻塞于 Q4/C4；Q5 若接受 v1 只用 fallback 则不做） | 2 |
+| **含 frame 合计** | | **12.75** |
+
 ## BU-01 Catalog 读取扩展
 
+- **预估：** 1.5 人天（风险：中。含 BU-01a 在 stage 探测响应（约 0.5）、读取扩展和 `getBundleDetail`）
 - **对应：** 上级计划 2.2；R3、Q13。
 - **输入：**
   - `core/apis/catalog.ts`：`CatalogItemOption`（:422-460）有 `type`、`bundleType`、`isPaid`、`isEnabled`、`isShownInStore`。
@@ -79,6 +93,7 @@ flowchart TD
 
 ## BU-02 Live 规则与卡片注册
 
+- **预估：** 0.5 人天（风险：低。Live 规则和卡片元数据）
 - **对应：** 上级计划 1.1 到 1.4；D1；Q6、P3、P7、P8、P9。
 - **输入：** BU-01；基础 F-05、F-07、F-12。
 - **输出：**
@@ -108,6 +123,7 @@ flowchart TD
 
 ## BU-03 Verifiers
 
+- **预估：** 1.25 人天（风险：中。5 个 verifier、共享列表缓存、字段缺失时读 detail）
 - **对应：** 上级计划 2.5。
 - **输入：** BU-01；基础 F-04（`ctx.target`、`ctx.runId`；**必须先完成**）；`GS/setups/shared-verifiers.ts` 的 `verifyItemCatalog`（**不复用**：它用 `listCatalogItemRefs`，bundle 也算）。
 - **输出：** `BUN/verifiers.ts`，全部符合 `StepVerifier`：
@@ -139,6 +155,7 @@ flowchart TD
 
 ## BU-04 target 捕获（纯函数）
 
+- **预估：** 1.5 人天（风险：中。纯函数约 0.5，`useBundleTarget` 约 1）
 - **对应：** 上级计划 2.7；P1、P8。
 - **输入：** BU-01 的 `CatalogItemOption`；基础 F-03 的 `snapshot`、`target`。
 - **输出：** `BUN/target.ts`：
@@ -194,6 +211,7 @@ flowchart TD
 
 ## BU-05 target 选择器 UI
 
+- **预估：** 0.25 人天（风险：低。单个选择组件）
 - **对应：** 上级计划 2.7（多个新 SKU 时伙伴选一个）。
 - **输入：** BU-04；基础 F-03 的 `setTarget`。
 - **输出：** `BUN/TargetPicker.tsx`：属性 `{ candidates: CatalogItemOption[]; onChoose(sku: string): void }`。显示新 bundle 的短列表（名称加 SKU），一个选择动作。
@@ -207,6 +225,7 @@ flowchart TD
 
 ## BU-06 Guide 配置与六个步骤
 
+- **预估：** 2 人天（风险：高。6 个步骤、双路径、可选步骤、注册）
 - **对应：** 上级计划 2.1、2.3、2.4；D2-FR1 到 FR18。
 - **输入：** BU-03、BU-04、BU-05、BU-07；基础 F-02、F-05、F-10、F-11。
 - **输出：** `BUN/config.tsx`：`SetupConfig<'bundles'>`，名称 "Build and manage bundles"。
@@ -248,6 +267,7 @@ flowchart TD
 
 ## BU-07 Fallback 链接
 
+- **预估：** 0.25 人天（风险：低。路径函数和按钮）
 - **对应：** 上级计划 3.3、3.5（fallback 部分）；D3-FR7、NFR Reliability。
 - **输入：** `routes/inside/storefront.ts` 的路由；`nav-items-config.tsx:47-51`（`/storefront/bundles` 已是 "All items" 的 active path）。
 - **输出：** `BUN/links.ts`：
@@ -269,6 +289,7 @@ flowchart TD
 
 ## BU-08 返回时重新判定
 
+- **预估：** 1 人天（风险：中。focus 防抖、有上限的重试）
 - **对应：** 上级计划 2.6；D3-FR4、D2-FR4；P4。
 - **输入：** 基础 F-04（`refresh({force: true})`）、F-10（`recheck`）。
 - **输出：** `BUN/useRecheck.ts`（或直接在 `useAdvancedGuide` 里启用）：
@@ -290,6 +311,7 @@ flowchart TD
 
 ## BU-09 Run 生命周期：Bundles 的场景测试
 
+- **预估：** 不计（风险：—。没有运行时代码，只有场景测试，不计）
 - **对应：** 上级计划 2.10；D1-FR6、D2-FR8、D2-US13；P9。
 - **输入：** 基础 F-03（`startRun`、`completeRun`、`markEngaged`）、F-10（`resolveRunIntent`、`secondaryLinkKind`、run 规则表）、F-12（卡片次要链接）。
 - **输出：** 没有新的运行时代码。run 规则是共享的，在基础 F-10 实现（Promotions 用同一份）。本步骤只写 Bundles 特有的场景测试，并确认 Bundles 的 `target`、`snapshot` 遵守该规则。
@@ -306,6 +328,7 @@ flowchart TD
 
 ## BU-10 Frame host 与 "saved" 事件（frame 模式，阻塞于 Q4/C4）
 
+- **预估：** 2 人天（风险：高。frame host、saved 事件、5 秒 fallback、权限；**阻塞于 Q4/C4**，v1 若只用 fallback 则为 0）
 - **对应：** 上级计划 3.1、3.2、3.4、2.6（事件部分）；D3-FR1 到 FR6。
 - **输入：** Q4、C4（`module_id`、container scope、frame id、事件约定）；`@accounts-sdk/platform-shell/remote-module` 的 `RemoteModule`；BU-07（fallback）、BU-08（重试）、基础 F-10（`useTrustedPin`、`AdvancedGuideContext`）。
 - **输出：**
@@ -337,6 +360,7 @@ flowchart TD
 
 ## BU-11 Manage bundles 页面
 
+- **预估：** 1 人天（风险：中。两种模式的页面和路由接入）
 - **对应：** 上级计划 2.8；D2-FR19、FR20；Q12。
 - **输入：** 基础 F-09（`/manage` 路由，渲染注册表里的 `ManageComponent`）；BU-07；BU-10（frame 模式时）。
 - **本步骤同时：** 把 `ManageBundles` 填入 Bundles 的 `ManageComponent`（BU-06 注册时留空）。
@@ -353,6 +377,7 @@ flowchart TD
 
 ## BU-12 成功页与完成
 
+- **预估：** 0.5 人天（风险：低。成功页接线）
 - **对应：** 上级计划 2.9；D2-FR9、FR10。
 - **输入：** 基础 F-14；BU-06；BU-11。
 - **输出：** 成功页摘要写出 target bundle 的名称，说明 bundles 已上线，提供 "Manage bundles" 按钮（`managePath`）和下一个推荐能力。`completeRun` 在全部步骤完成时调用。
@@ -366,6 +391,7 @@ flowchart TD
 
 ## BU-13 埋点与 NFR
 
+- **预估：** 1 人天（风险：低。六个事件和 NFR 的手动检查）
 - **对应：** 上级计划 4.1 到 4.6；PRD NFR。
 - **输入：** 基础 F-15、F-16、F-17；BU-10。
 - **输出：**

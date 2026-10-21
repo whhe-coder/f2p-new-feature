@@ -170,3 +170,32 @@
 | A7c OBS-ROUTE-006 | 2026-10-21T03:17:24Z | `{base}/53105/analytics/products/login?period=7d#k` | 整页加载 | → `/53105/analytics/engagement?period=7d#k` | URL | — |
 | A7d OBS-ROUTE-006 | 2026-10-21T03:17:35Z | `{base}/53105/analytics/products/unknown?period=7d` | 整页加载 | → `/53105/analytics/payments`，query 丢失 | URL | — |
 | A8 OBS-I18N-002 / S-36（旁证） | 2026-10-21T03:18:19Z | `{base}/53105/dashboard?locale=de`（profile 语言为 `en`） | 整页加载 | 时间以文档开始加载为 0：1140 ms 时 URL 中还有 `?locale=de`，`<html lang=en>`；**2183 ms 时 `?locale` 已被删除**；`get_init_info` 在 2839–3618 ms；4599 ms 时 sidebar 首次渲染，文字为英语（“Get started”）；之后 30 s 内语言一直是 `en`。没有发出 `users/location` 或其他写 locale 的请求 | URL、DOM、network | 1140 ms 之前没有观测；UI 在 4.6 s 前没有可见文字，所以**看不到“先变成 de 再变回 en”的过程**，只能确认参数在用户数据加载前就被删除、最终显示 profile 语言。stage 的 SDK 是旧补丁版本，只算旁证 |
+
+## 5. Batch C（spec 0.3.3，会改数据）
+
+> 授权：用户在本会话中确认只执行 C1（2026-10-21）。**C2、C3 本次不执行。**
+> 公共条件：host `accounts-sdk-skeleton.nl-k8s-stage.srv.local`；build `stage-web-games-20261005-03`（`c1b5e37`，SDK 为旧补丁版本，涉及 SDK 的结论只算旁证）；账号 Xsolla admin（`ROLE_ADMIN`），merchant `53105`，已登录；页面 `/53105/dashboard`；时间为 UTC。
+> 观测方式：在页面中 hook `XMLHttpRequest` 记录 `users/location` 请求的方法、body 和状态码；DOM 读取页面文本；Redux store 读取 `locale.currentLocale` 和 `user.user.locale`。LiveChat 的 iframe 跨域，只能读取 `window.LiveChatWidget.language`，看不到 iframe 内部的文案。
+
+### C1 S-23 / S-24：切换语言
+
+| 步骤 | 时间（UTC） | 操作 | 观察结果 | 证据 |
+|---|---|---|---|---|
+| 0 记录 L0 | 03:53:57Z | — | **L0 = `en`**：store `currentLocale=en`，profile `locale=en`，topbar 显示 EN，`<html lang=en>`，`LiveChatWidget.language=en`。Balance 显示 `$ \| 0.00`，Gross revenue 显示 `$0.00`，Last payout `Sep 7, 2022` | store、DOM |
+| 1 切到 de | 03:54:34Z | topbar EN → Deutsch | `POST /api/account/platform/{id}/users/location`，body `{"locale":"de"}`，**200**。store 和 profile 都变为 `de`，topbar 显示 DE，页面文案变为德语。**S-23：Guthaben（Balance）显示 `$ \| 0 00`，小数逗号被替换成空格**；同页 Bruttoeinnahmen（Gross revenue）正常显示 `0,00`。**S-24：`LiveChatWidget.language` 仍为 `en`**。`<html lang>` 仍为 `en` | network、DOM、store |
+| 2 切到 fr | 03:55:01Z | topbar DE → Français | `POST …/users/location`，body `{"locale":"fr"}`，**200**。store 和 profile 都变为 `fr`，topbar 显示 FR。**S-23：Solde 显示 `$ \| 0 00`**；Revenus bruts 正常显示 `0,00 $US`。**S-24：`LiveChatWidget.language` 仍为 `en`**。`<html lang>` 仍为 `en` | network、DOM、store |
+| 3 刷新（仍为 fr 时） | 03:55:30Z–03:55:54Z | 整页刷新 dashboard | **语言回到 `en`**：`get_init_info` 返回的 profile `locale=en`，store `en`，topbar EN，Balance 回到 `0.00`。cookie `pa-locale`、`gc-pa-locale`、`sb-pa-locale`、`network-pa-locale` 都是 `en`。`LiveChatWidget.language=en` | store、DOM、cookie |
+| 4 切回 L0 | 03:56:19Z | topbar EN → English | `POST …/users/location`，body `{"locale":"en"}`，**200** | network |
+| 5 刷新确认 | 03:56:46Z | 整页刷新 dashboard | store、profile、topbar、`LiveChatWidget.language`、`<html lang>` 都是 `en`。**已恢复到 L0** | store、DOM |
+
+**结论**
+
+- **S-23 已复现**：de 和 fr 下，Balance 的小数逗号被替换成空格（`0 00`）。同页的 Gross revenue 格式正确，说明问题只在 Balance 组件。余额为 0，没有观察到千位分隔符的表现。
+- **S-24 已复现（前半段）**：切换语言后，`LiveChatWidget.language` 一直是 `en`。后半段“刷新后才更新”**无法验证**，原因见下一条。
+- **新发现：切换语言不能持久化。** 两次 `users/location` 都返回 200，store 和 profile 当场更新；但刷新后 `get_init_info` 返回的 profile 语言仍是 `en`，页面回到英语。原因未知 [U]：可能是 `users/location` 写入的字段不是 `get_init_info` 读取的字段，也可能是后端没有保存。这与 T3 记录的 S-25（保存失败时无提示、刷新后变回）表现相同，但这里接口没有失败。
+- **附带观察**：切换语言后 `<html lang>` 始终是 `en`，不随界面语言变化。
+- **数据恢复**：最后一次写入为 `{"locale":"en"}`（200），刷新后确认为 `en`。本次没有新建任何账号、org 或项目。
+
+### C2、C3
+
+未执行：用户只授权了 C1。C3（新注册账号）需要创建账号和输入密码，Claude 不执行，需要人工完成。

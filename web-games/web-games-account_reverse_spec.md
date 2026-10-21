@@ -1,7 +1,7 @@
 # Reverse-Engineered Specification: web-games-account（Web Games 发行商账户 Host）
 
 > Status: draft（只读源码得出；未在运行时验证）
-> Document version: 0.3.4
+> Document version: 0.3.5
 > Last updated: 2026-10-21
 > Evidence snapshot:
 > - Host 代码：`web-games-account` `master` @ `772a320dc6010323957e3d536495f5a0868fada0`（commit time 2026-10-20T09:57:39Z，"Merge branch 'BIZA-524-add-v-1-contract-baselines-for-the-v-2-upgrade'"）。
@@ -21,6 +21,7 @@
 | 0.3.2 | 2026-10-21 | 两类输入：<br>（1）第四轮独立 review 的 5 条，全部按可执行路径核实成立：<br>　• OBS-I18N-002：`?locale=` 在用户数据加载后会被 profile 覆盖<br>　• OBS-PROJ-001：`getProjectRouteRedirectId` 的完整分支，以及"不可访问"触发的改写<br>　• §2.3 / OBS-AUTH-009：BFF 在服务端解析 `0` 哨兵 ID<br>　• OBS-AUTH-002：客户端导航时 URL token 会替换会话 token<br>　• OBS-FRAME-003：DocumentCenter 的 message 监听只上报 analytics<br>（2）stage 运行时记录：新增 §10.3；新增 S-35（metaframe 必崩）、S-36、S-37、S-38；BFF 只挂载 `/for/:site/*` 带来的影响（OBS-BOOT-005/006、S-20）；关闭 U-12；新增 U-14 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.3 | 2026-10-21 | 更正 §10.3 的适用范围：stage（`c1b5e37`）的 SDK 是更旧的补丁版本，host 的差异也比 0.3.2 所写的多；依赖 SDK 的运行时观察降为佐证 | `git diff c1b5e37 772a320` |
 | 0.3.4 | 2026-10-21 | 合入 stage Batch A：执行 5 项，未执行 3 项。U-05 在 stage 上关闭；证实 S-21、OBS-ROUTE-003/005/006 与 BFF 的 `/0/…` 分支；按 `bff:merchant-sentinel.ts:186-247` 细化 OBS-AUTH-009 的哨兵分支（包括预算不足和请求超时）；§6 补充 finance 与 support 共用 container | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
+| 0.3.5 | 2026-10-21 | 合入 stage Batch C 的 C1（切换语言，已恢复）：证实 S-23，证实 S-24 的前半段；新增 S-39（语言保存返回 200 但不持久化）、S-40（`<html lang>` 不更新）、U-16；补充 OBS-I18N-002 的保存接口 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 
 ## 0. 阅读约定
 
@@ -700,7 +701,9 @@ Layers 2 and 4 go through `pickBy`, so empty values do not override earlier laye
 
 **OBS-I18N-002** 切换语言。[F] `src/App.tsx:73`、`ps:providers/LocaleProvider.tsx:24-52`、`pa:utils/locale.ts:91-117`、`pc:LanguageSwitcher.tsx:28-43`、`ps:slices/locale.ts:22-27`
 The host passes `getTranslationsData` to `PlatformShell`; the SDK owns locale resolution and switching:
-- **Switching.** The topbar LanguageSwitcher updates the locale optimistically and writes cookie and localStorage. It saves the profile locale only when there is a `merchantId`. A save failure only goes to `console.error`, with no UI (S-25).
+- **Switching.** The topbar LanguageSwitcher updates the locale optimistically and writes cookie and localStorage. It saves the profile locale only when there is a `merchantId`, via `POST /api/account/platform/{orgId}/users/location` (`pa:apis/profile.ts:25,41`). A save failure only goes to `console.error`, with no UI (S-25).
+On stage the save returned 200, yet after a reload `get_init_info` still returned the old profile locale, so the language reverted (S-39, U-16).
+Neither the host nor the SDK sets `<html lang>` (S-40).
 - **On load**（`ps:providers/LocaleProvider.tsx:33-67`、`pa:apis/merchant.ts:216`）:
   1. `?locale=` applies only until user data loads. A mount effect strips the parameter with `replaceState`. When `user.locale` arrives later, `hasUrlLocale` is already false, so the profile locale wins.
   2. The SDK fills a missing profile locale with `'en'`. After user data loads, the profile locale or `'en'` therefore always overrides cookie, localStorage and URL.
@@ -1090,6 +1093,17 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | OBS-I18N-002、S-36（旁证） | `?locale=de` 约在 2.2 s 被删掉，早于 `get_init_info`（2.8–3.6 s）。4.6 s 首次出现可见文字时已经是 `en`，30 s 内没有变化 | 结论不确定：观察不到"先 de 再回 en"的过程，也不能排除旧版 SDK 根本没有应用 URL 中的语言。仍以源码结论为准 |
 | 未执行 | A3（无会话的 BFF 规则）、A4（S-02）、A5（S-04、OBS-BOOT-002）：工具不能开无痕窗口、不能屏蔽请求，也不能输入密码 | OBS-AUTH-009 的无会话规则、S-02、S-04、OBS-BOOT-002 仍只有源码证据 |
 
+**Batch C · C1（用户在执行会话中直接确认；admin 账号；会改 profile 语言，已恢复为 `en`）**
+
+`DashboardBalance` 与 `LiveChat` 的源码在 `c1b5e37` 与 772a320 之间没有变化（只增加了测试），所以 S-23、S-24 的结论直接适用于 772a320。
+
+| 关联 ID | 观察结论（有边界） | 对本文的影响 |
+|---|---|---|
+| S-23 | 切到 de 和 fr 时，Balance 显示为 `$ \| 0 00`，小数逗号被换成空格；同页 Gross revenue 的格式正确（de `0,00`，fr `0,00 $US`）。余额为 0，没有观察到千位分隔符 | 证实 S-23，且问题只在 Balance 组件 |
+| S-24 | 切换语言后，`window.LiveChatWidget.language` 一直是 `en`。iframe 跨域，看不到里面的文案；"刷新后更新"因 S-39 无法验证 | 证实 S-24 的前半段 |
+| S-39、U-16 | `POST …/users/location` 在 `{"locale":"de"}` 和 `{"locale":"fr"}` 时都返回 200，store 当场更新；整页刷新后 `get_init_info` 返回的 profile 语言仍是 `en`，页面和 `pa-locale` cookie 都回到英语 | 新可疑点：保存成功但不持久化。原因在后端或字段映射 [U]。SDK 2.29.2 用的是同一接口 |
+| S-40 | 切换语言后 `<html lang>` 始终是 `en` | 与源码一致（host 与 SDK 中都没有设置它的代码） |
+
 ---
 
 ## 11. 缺陷、可疑点与死代码
@@ -1128,8 +1142,8 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-20 | Upsell 选完项目后，`location.replace` 的站内目标（`/{m}`、`/{m}/frame/documentation`、`/{m}/dashboard`、相对 `step.url`）都没有加 `withAccountBasename`，在任何 `/for/{site}/account` 部署下都会离开应用。根级 `/{m}` 返回什么是 [U]；`withAccountBasename` 在 `server.ts:21` 中有正确用法 | 中 | `UpsellModal/index.tsx:71-75`；`core/utils/upsell.ts:20-45`；`core/utils/url.ts:41-44` |
 | S-21 | `/error`、`/forbidden`、`/not-found` 读取 `state.user.id`，所以 `authorized` 恒为 false，已登录用户也看到 NavigationLite；应读取 `state.user.user?.id` | 低 | `layouts/error/*/index.tsx:17-19` |
 | S-22 | BFF 的 `PUBLIC_PATHS` 包含 `/forbidden`、`/not-found`，SPA 的 `allowedUnauthorizedUrls` 不包含，无会话访问时多一次跳转 | 低 | `bff:bff-routes.ts:36-37`；`pa:constants/allowed-unauthorized-urls.ts:1-15` |
-| S-23 | 余额数字把所有 `,` 替换为空格，de、es、pt、fr、ru 的小数逗号变成空格，所有金额都受影响 | 低 | `components/Dashboard/DashboardBalance/index.tsx:67-72` |
-| S-24 | LiveChat 在同一 slot 存续期间不响应 locale 和 token 的变化 | 低 | `components/LiveChat/LiveChat.tsx:86,183` |
+| S-23 | 余额数字把所有 `,` 替换为空格，de、es、pt、fr、ru 的小数逗号变成空格，所有金额都受影响。stage 已复现（§10.3 C1） | 低 | `components/Dashboard/DashboardBalance/index.tsx:67-72` |
+| S-24 | LiveChat 在同一 slot 存续期间不响应 locale 和 token 的变化。stage 已复现前半段（§10.3 C1） | 低 | `components/LiveChat/LiveChat.tsx:86,183` |
 | S-25 | SDK LanguageSwitcher 乐观更新语言：没有 `merchantId` 时不保存，保存失败只打 `console.error`，刷新后语言回退（owner：accounts-sdk） | 低 | `pc:LanguageSwitcher.tsx:28-43`；`ps:providers/LocaleProvider.tsx:24-52` |
 | S-26 | Dashboard 在任何权限判断之前就请求 balance 和 `salescards/info`，即将被重定向的用户和没有权限的用户也会发出请求 | 低 | `pages/Dashboard.tsx:65,97-121` |
 | S-27 | 注册 Step 1 的副标题是占位文案，9 种语言都会显示给真实用户 | 低 | `src/locales/en.json:33`；`Registration.tsx:72-76` |
@@ -1144,6 +1158,8 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-36 | SDK `LocaleProvider` 注释说 `?locale=` 优先于 profile，但挂载时就删掉了该参数，用户数据加载后 profile（缺省为 `'en'`）覆盖 URL、cookie 与 localStorage。owner：accounts-sdk | 低 | `ps:providers/LocaleProvider.tsx:30-67`；`pa:apis/merchant.ts:216` |
 | S-37 | Email customizer 外链写死为生产域名 `https://sitebuilder.xsolla.com/...`，stage 上也指向生产 | 低 | `layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:413` |
 | S-38 | chrome 显隐规则用小写子串 `includes` 匹配，区分大小写，而路由不区分。大写 URL（如 `/Settings/Company`）会显示本应隐藏的 shell sidebar（与 S-19 同类） | 低 | `layouts/Root.tsx:158-236` |
+| S-39 | 切换语言的保存请求 `POST /api/account/platform/{orgId}/users/location` 返回 200，但刷新后 `get_init_info` 仍返回旧的 profile 语言，切换不能跨会话保留。只在 stage 上观察到；可能是后端没有保存，或写入的字段与 `get_init_info` 读取的不同（U-16）。owner：backend + accounts-sdk | 中 | `pa:apis/profile.ts:25,41`；§10.3 C1 |
+| S-40 | 切换语言时 `<html lang>` 不更新（host 与 SDK 中都没有设置它的代码），影响屏幕阅读器和浏览器翻译 | 低 | host / SDK grep；§10.3 C1 |
 
 ### 11.3 死代码（grep 确认：除测试外没有 import 方，或不会被执行）
 
@@ -1205,6 +1221,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | U-13 | `pass_survey` 是否在服务端把 `is_completed` 置为 true？Skip 之后的新会话是否返回 `needs_acceptance`？ | 未关闭 | backend 契约或 stage 观察（S-33、OBS-REG-001） | backend + host 团队 |
 | U-14 | 根级 SDK `ErrorBoundary` 崩溃后为什么不随路由变化重置？ | 未关闭 | 读 `@accounts-sdk/platform-components` 的 `ErrorBoundary` 源码（是否有 `resetKeys` 或 location 依赖）；stage 已观察到该现象（§10.3） | host 团队 + accounts-sdk |
 | U-15 | S-34 在非 admin 账号上是否成立？ | 未关闭 | 用非 admin 账号整页打开外部 merchant URL（stage 当前只有 admin 账号） | host 团队 / QA |
+| U-16 | `users/location` 写入的语言为什么没有体现在 `get_init_info` 中（S-39）？是后端没有保存、字段不一致，还是 admin 账号的特殊情况？ | 未关闭 | 后端接口契约；用非 admin 账号复测 | backend + accounts-sdk |
 
 ---
 

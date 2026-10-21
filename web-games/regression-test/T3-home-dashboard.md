@@ -265,13 +265,14 @@ host 文案现状（`src/locales/*.json`）：en 151 个 key；8 个语言都没
 | ID | 场景 | 前置条件（账号/角色/数据） | 步骤 | 预期结果 | 优先级 | 追溯 | 自动化 |
 |---|---|---|---|---|---|---|---|
 | RT-I18N-001 | Topbar 切换语言 | A-OWNER，当前 en | 1. 点 topbar 语言按钮<br>2. 选 “日本語” | 下拉有 9 项（Deutsch、English、Español、Français、日本語、한국어、Português、Русский、中文 (简体)）；界面立即变为日文，**不刷新页面**；cookie `pa-locale=ja`；localStorage `i18nextLng=ja`；Network 有 `POST .../users/location`，body `{"locale":"ja"}` | P1 | OBS-I18N-002；`platform-components dist/index.mjs:1162-1205` | — |
-| RT-I18N-002 | 刷新后保持 | 接 RT-I18N-001 | 1. 硬刷新 | 仍是日文（`user.locale = ja`） | P1 | OBS-I18N-002；`platform-store dist/index.mjs:4113-4116` | — |
+| RT-I18N-002 | 刷新后保持 | 接 RT-I18N-001 | 1. 硬刷新 | **当前预期（预期失败项，S-39）**：界面回到切换前的语言。stage 实测（2026-10-21，`c1b5e37`，admin 账号）：切到 de、fr 时 `POST …/users/location` 都返回 200，但刷新后 `get_init_info` 返回的 `user.locale` 仍是 `en`，页面回到英语。**修复后预期**：仍是日文（`user.locale = ja`） | P1 | OBS-I18N-002；S-39；U-16；`platform-store dist/index.mjs:4113-4116`；stage-results §5 C1 [P8] | — |
 | RT-I18N-003 | 持久化失败 `[S-25，原 N-04]` | A-OWNER，当前 en，在 merchant 页面（有 `merchantId`） | 1. Block `.../users/location`<br>2. topbar 切到 de<br>3. 取消 Block，硬刷新 | 2：界面变为德文，console 出现 `Failed to persist locale to profile:`，无 toast。3：**当前预期**界面回到 en（加载后 profile 的 `user.locale = en` 覆盖 cookie `de`）。**修复后预期**：失败时提示用户，或回滚界面语言。<br>注：没有 `merchantId` 时 SDK 不发 `POST users/location`，刷新后同样回退；stage 上难以在有 topbar 的页面构造无 merchant 的状态，所以不单列用例 | P2 | OBS-I18N-002；S-25；`pc:LanguageSwitcher.tsx:28-43`；`platform-components dist/index.mjs:1171-1177` [P3] | — |
 | RT-I18N-004 | Profile 页切换 | A-OWNER | 1. Profile 页改语言为 fr 并保存<br>2. 重复一次，保存前 Block `users/location` | 1：保存成功后界面变为法文。2：弹失败 toast，语言不变 | P2 | OBS-I18N-002；`platform-pages dist/index.mjs:3240-3256` | — |
 | RT-I18N-005 | `?locale=` 参数（S-36） | A-OWNER，`user.locale = en`，cookie `pa-locale=en` | 1. 硬刷新打开 `/{m}/dashboard?locale=fr`<br>2. 观察首屏、用户数据加载后的语言，以及地址栏和 cookie<br>3. 若有 profile 没有 `locale` 的账号，重复 1–2<br>4. 若有 `user.locale` 为不受支持值（如 `it`）的账号，重复 1–2 | 地址栏中的 `locale` 参数在挂载后立即被 `replaceState` 移除。<br>**预期（spec 0.3.2 OBS-I18N-002）**：`?locale=` 只在用户数据加载前生效。首屏可能先显示 fr，cookie 被写成 fr；用户数据到达时 URL 中已没有 `locale`，profile 的 `en` 生效，最终为 en，cookie 回写为 en。<br>3：SDK 把缺失的 profile locale 补为 `'en'`，所以最终同样为 en，不保留 fr（原预期“最终为 fr”作废）。<br>4：**按代码推断 [I]**：不受支持的值不会被直接采用，`initializeLocale` 按 cookie 回退，此时 cookie 为 fr，最终可能为 fr。记录实际结果<br>S-36：SDK 注释说 `?locale=` 优先于 profile，行为与注释不符（owner：accounts-sdk）。**修复后**取决于 accounts-sdk 的决定：改为 URL 优先时，1 的最终语言应为 fr；只改注释时，预期不变 | P2 | OBS-I18N-002、S-36；`ps:providers/LocaleProvider.tsx:33-67`；`pa:apis/merchant.ts:216`；`platform-store dist/index.mjs:4107-4130` [P3] [P5] | — |
 | RT-I18N-006 | 空译文回退英文 | A-OWNER，切到 de | 1. 打开 `/{m}/analytics/anti-fraud` | Blocklist 标签显示英文 “Blocklist”，其他标签为德文 | P1 | OBS-I18N-001；`src/locales/de.json`；`layouts/advanced-analytics/index.tsx:143` | `src/locales/index.test.ts` “falls back to a blank localized value from the English counterpart” |
 | RT-I18N-007 | host 文案逐语言抽查 | A-OWNER | 1. 依次切到 9 种语言<br>2. 每种语言看 Choose UI、Games Portal 引导、Ask AI 横幅、promo banner、Dashboard “Performance / Balance” | 各处为对应语言；没有显示 key id（形如 `host.pages.…`、`app.…`）；没有空白标签<br>`[分支差异]` 分支 key 前缀改为 `web-games.*`；Ask AI 文案在非英文界面显示英文（见 RT-UI-008）。 | P1 | OBS-I18N-001；`src/locales/index.ts:81-86` | `src/locales/index.test.ts` |
 | RT-I18N-008 | 日期本地化 | A-OWNER，balance 有 payout 日期 | 1. 切到 ja、de | Last/Next payout 按 locale 显示（例如 ja 为 “2026年10月21日” 形式，de 为 “21. Okt. 2026” 形式） | P2 | OBS-I18N-001；`DashboardBalance/index.tsx:29-33` | — |
+| RT-I18N-009 | 切换语言后 `<html lang>` 不更新（S-40） | A-OWNER，当前 en | 1. topbar 切到 de<br>2. 在 Console 执行 `document.documentElement.lang`<br>3. 切回 en | **当前预期（预期失败项，S-40）**：第 2 步返回 `en`。stage 实测（2026-10-21）：切到 de、fr 后都是 `en`。**修复后预期**：返回 `de`，与界面语言一致（影响屏幕阅读器和浏览器翻译提示） | P2 | OBS-I18N-002；S-40；stage-results §5 C1 [P8] | — |
 
 数字格式问题见 RT-DASH-017。
 
@@ -519,3 +520,12 @@ spec 0.3.1 → 0.3.2（2026-10-21）。只读两版 diff 中 T3 相关的变化�
 | RT-DASH-024 | 修改 | U-12 已关闭 / §10.3：缺 basename 的落地地址返回 BFF 404，替换原来的 [U] |
 
 其他改动：头部 spec 版本改为 0.3.2；阅读约定补 `[P5]`；§5 覆盖说明补 S-36；§5.1 “user 加载”一行补 `'en'` 缺省；§8 新增 U-12（关闭）；§9 P3-E-01 标为已合入；§10 定向用例补 S-36 → RT-I18N-005。核对后未改：RT-I18N-002、RT-I18N-003（profile 覆盖 cookie 的结论不变）；RT-DASH-015（XAA 用的是 `@accounts-sdk/core` 的 ErrorBoundary，不是 U-14 涉及的 platform-components 版本）。
+
+## P8 变更记录（spec 0.3.5）
+
+| 用例 | 变更 | 原因 |
+|---|---|---|
+| RT-I18N-002 | 修改 | S-39：语言保存返回 200 但刷新后不保留（stage C1 实测），改为预期失败项并给出修复后预期 |
+| RT-I18N-009 | 新增 | S-40：切换语言后 `<html lang>` 不更新（stage C1 实测） |
+
+覆盖统计变化：P1 不变，P2 +1，总数 100 → 101（P0 9 / P1 41 / P2 51）。

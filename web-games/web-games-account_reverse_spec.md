@@ -1,7 +1,7 @@
 # Reverse-Engineered Specification: web-games-account（Web Games 发行商账户 Host）
 
 > Status: draft（只读源码得出；未在运行时验证）
-> Document version: 0.3.5
+> Document version: 0.3.6
 > Last updated: 2026-10-21
 > Evidence snapshot:
 > - Host 代码：`web-games-account` `master` @ `772a320dc6010323957e3d536495f5a0868fada0`（commit time 2026-10-20T09:57:39Z，"Merge branch 'BIZA-524-add-v-1-contract-baselines-for-the-v-2-upgrade'"）。
@@ -22,6 +22,7 @@
 | 0.3.3 | 2026-10-21 | 更正 §10.3 的适用范围：stage（`c1b5e37`）的 SDK 是更旧的补丁版本，host 的差异也比 0.3.2 所写的多；依赖 SDK 的运行时观察降为佐证 | `git diff c1b5e37 772a320` |
 | 0.3.4 | 2026-10-21 | 合入 stage Batch A：执行 5 项，未执行 3 项。U-05 在 stage 上关闭；证实 S-21、OBS-ROUTE-003/005/006 与 BFF 的 `/0/…` 分支；按 `bff:merchant-sentinel.ts:186-247` 细化 OBS-AUTH-009 的哨兵分支（包括预算不足和请求超时）；§6 补充 finance 与 support 共用 container | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.5 | 2026-10-21 | 合入 stage Batch C 的 C1（切换语言，已恢复）：证实 S-23，证实 S-24 的前半段；新增 S-39（语言保存返回 200 但不持久化）、S-40（`<html lang>` 不更新）、U-16；补充 OBS-I18N-002 的保存接口 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
+| 0.3.6 | 2026-10-21 | 合入 stage Batch A2（用页面内方法补做 A3、A4）：证实 OBS-AUTH-009 的无会话规则和有会话访问 `/login` 的规则、S-22 的 BFF 一半、S-02；A5a、A5b 未执行 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 
 ## 0. 阅读约定
 
@@ -1091,7 +1092,15 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-21、OBS-ERR-004 | 已登录用户在 `/forbidden`、`/not-found` 上，客户端导航和整页加载都显示 NavigationLite：静态 merchant 名称，没有切换器、用户菜单和语言切换 | 证实 S-21 |
 | OBS-ROUTE-003/005/006 | `//` 规范化丢掉 query 和 hash；`/support-hub/abc?x=1` → `/communication-hub`，子路径和 query 都丢掉；`/products/login?period=7d#k` → `/engagement?period=7d#k`；未映射的产品 → `/payments`，query 丢掉 | 全部证实 |
 | OBS-I18N-002、S-36（旁证） | `?locale=de` 约在 2.2 s 被删掉，早于 `get_init_info`（2.8–3.6 s）。4.6 s 首次出现可见文字时已经是 `en`，30 s 内没有变化 | 结论不确定：观察不到"先 de 再回 en"的过程，也不能排除旧版 SDK 根本没有应用 URL 中的语言。仍以源码结论为准 |
-| 未执行 | A3（无会话的 BFF 规则）、A4（S-02）、A5（S-04、OBS-BOOT-002）：工具不能开无痕窗口、不能屏蔽请求，也不能输入密码 | OBS-AUTH-009 的无会话规则、S-02、S-04、OBS-BOOT-002 仍只有源码证据 |
+| 未执行 | A3（无会话的 BFF 规则）、A4（S-02）、A5（S-04、OBS-BOOT-002）：工具不能开无痕窗口、不能屏蔽请求，也不能输入密码 | A3、A4 已改用页面内的方法在 Batch A2 中补做；S-04、OBS-BOOT-002 仍只有源码证据 |
+
+**Batch A2（用页面内方法补做；admin 账号；只读，每项结束后整页刷新恢复）**
+
+| 关联 ID | 方法 | 观察结论（有边界） | 对本文的影响 |
+|---|---|---|---|
+| OBS-AUTH-009、S-22 | 页面内 `fetch`，带 `Accept: text/html`。用 `credentials:'omit'` 模拟无会话，`include` 作对照。只有 HTML 请求才会触发 BFF 守卫（`bff:bff-routes.ts:253,267`） | 无会话访问 `{base}` 和 `{base}/{m}/dashboard?tab=x`：被重定向，最终都是 `{base}/login`（200，返回 shell）。无会话访问 `/forbidden`、`/not-found`：没有重定向，200，返回 shell。有会话访问 `/login`：重定向到 `{base}`（当时没有保存的 return URL） | 无会话规则和有会话访问 `/login` 的规则证实；S-22 的 BFF 一半证实，SPA 之后那一次跳转在这种方法下看不到。BFF 版本相同，结论直接适用于 772a320。看不到 Set-Cookie，所以 `pa-original-url` 是否写入、登录后能否回到原地址，都没有验证 |
+| S-02 | 先确认 `window.funding` 未定义，再在页面内拦截 `appendChild` / `insertBefore`，把 funding 入口脚本换成无效地址，然后客户端导航到 `/projects/{p}/funding` | 3 s 到约 60 s 之间，注入次数始终是 1；页面上有 1 处 `Failed to load: …funding-developer-account.js`，另有 1 个元素一直在转圈。离开再回来，注入次数变为 2，再次失败，仍是 1 处报错加 1 个转圈 | 证实 S-02：第二个调用者不再注入、一直转圈，之后才挂载的调用者会重试。报错和转圈分别对应 nav 区和 App 区，这是推断 [I]，没有核对。离开后定时器是否泄漏，无法观察。`loadModule.ts` 与 `Funding` 在两个 commit 之间没有变化 |
+| S-04、OBS-BOOT-002 | 未执行 | A5a 需要切换到其他 merchant，会改写 merchant 相关的 cookie，超出只读范围；A5b 需要 DevTools 的请求屏蔽 | 仍只有源码证据；A5b 需人工执行 |
 
 **Batch C · C1（用户在执行会话中直接确认；admin 账号；会改 profile 语言，已恢复为 `en`）**
 
@@ -1121,7 +1130,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | ID | 描述 | 严重度 [I] | 证据 |
 |---|---|---|---|
 | S-01 | storefront 在 **render 期间**把原始 JWT 写进 JS 可读 cookie `gc-pa-v4-token`：只设 `secure`，没有 `sameSite`；token 为 null 时按 js-cookie 默认行为写入 `"null"` [I] | 高 | `layouts/storefront/index.tsx:12-17` |
-| S-02 | MF1 加载器：首个加载进行中挂载的并发调用者在首个失败后永久轮询，interval 不清理；funding 页可以稳定复现 | 中 | `modules/loadModule.ts:22-31`；`Funding/index.tsx:118-130` |
+| S-02 | MF1 加载器：首个加载进行中挂载的并发调用者在首个失败后永久轮询，interval 不清理；funding 页可以稳定复现。stage 已用页面内拦截复现（§10.3 Batch A2） | 中 | `modules/loadModule.ts:22-31`；`Funding/index.tsx:118-130` |
 | S-03 | IntegrationFrame 的域名 allowlist 用 `startsWith` 前缀匹配，userinfo、拼接主机、后缀子域、端口四种形式都能绕过（需要能控制后端 card 数据） | 中 | `pages/IntegrationFrame/available-domains.ts:12-13` |
 | S-04 | 权限获取失败时整个会话永久 loading | 中 | `core/access/route-access.ts:136-139` |
 | S-05 | `redirectToAccountRoot` 两个分支都返回 `false`，所以 `bootstrap.tsx:54` 的短路永远不会触发（当前无害）。修复时不能只改成 `return true`，否则 bootstrap 会 return 而不 render，导致白屏；必须同时导航或继续渲染 | 低 | `redirectToAccountRoot.ts:15`；`bootstrap.tsx:53-56` |
@@ -1141,7 +1150,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-19 | section 路径判断区分大小写，而路由匹配不区分。大写 URL 可以让 webdev 绕过阻止，也会让 liveops / items-catalog 的合法页面被误拒 | 中 | `sections.ts`；`route-access.ts` |
 | S-20 | Upsell 选完项目后，`location.replace` 的站内目标（`/{m}`、`/{m}/frame/documentation`、`/{m}/dashboard`、相对 `step.url`）都没有加 `withAccountBasename`，在任何 `/for/{site}/account` 部署下都会离开应用。根级 `/{m}` 返回什么是 [U]；`withAccountBasename` 在 `server.ts:21` 中有正确用法 | 中 | `UpsellModal/index.tsx:71-75`；`core/utils/upsell.ts:20-45`；`core/utils/url.ts:41-44` |
 | S-21 | `/error`、`/forbidden`、`/not-found` 读取 `state.user.id`，所以 `authorized` 恒为 false，已登录用户也看到 NavigationLite；应读取 `state.user.user?.id` | 低 | `layouts/error/*/index.tsx:17-19` |
-| S-22 | BFF 的 `PUBLIC_PATHS` 包含 `/forbidden`、`/not-found`，SPA 的 `allowedUnauthorizedUrls` 不包含，无会话访问时多一次跳转 | 低 | `bff:bff-routes.ts:36-37`；`pa:constants/allowed-unauthorized-urls.ts:1-15` |
+| S-22 | BFF 的 `PUBLIC_PATHS` 包含 `/forbidden`、`/not-found`，SPA 的 `allowedUnauthorizedUrls` 不包含，无会话访问时多一次跳转。stage 已证实 BFF 对这两个路径放行（§10.3 Batch A2） | 低 | `bff:bff-routes.ts:36-37`；`pa:constants/allowed-unauthorized-urls.ts:1-15` |
 | S-23 | 余额数字把所有 `,` 替换为空格，de、es、pt、fr、ru 的小数逗号变成空格，所有金额都受影响。stage 已复现（§10.3 C1） | 低 | `components/Dashboard/DashboardBalance/index.tsx:67-72` |
 | S-24 | LiveChat 在同一 slot 存续期间不响应 locale 和 token 的变化。stage 已复现前半段（§10.3 C1） | 低 | `components/LiveChat/LiveChat.tsx:86,183` |
 | S-25 | SDK LanguageSwitcher 乐观更新语言：没有 `merchantId` 时不保存，保存失败只打 `console.error`，刷新后语言回退（owner：accounts-sdk） | 低 | `pc:LanguageSwitcher.tsx:28-43`；`ps:providers/LocaleProvider.tsx:24-52` |

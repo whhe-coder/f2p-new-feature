@@ -199,3 +199,15 @@
 ### C2、C3
 
 未执行：用户只授权了 C1。C3（新注册账号）需要创建账号和输入密码，Claude 不执行，需要人工完成。
+
+## 6. Batch A2（spec 0.3.5）
+
+> 请求方：spec-miner 会话（转述用户同意）。执行者：Claude。只在 Claude 自己的 tab 中修改 JS 运行时，不写 stage 数据，不清除会话；每项结束后整页刷新恢复。
+> 公共条件：host `accounts-sdk-skeleton.nl-k8s-stage.srv.local`；build `stage-web-games-20261005-03`（`c1b5e37`）；账号 Xsolla admin，merchant `53105`，已登录；时间为 UTC。BFF 两边都是 1.0.0，A3 的结论适用于 772a320。
+
+| # | 时间（UTC） | 路由 / 方法 | 加载方式 | 观察结果 | 证据 | 局限 |
+|---|---|---|---|---|---|---|
+| A3 OBS-AUTH-009、S-22 | 2026-10-21T03:59:47Z | 页面内 `fetch(u, {credentials, headers: {Accept: 'text/html'}, cache: 'no-store'})` | fetch（模拟文档请求） | `omit` + `{base}` → `redirected=true`，final `{base}/login`，200，返回 shell。`omit` + `{base}/53105/dashboard?tab=x` → `redirected=true`，final `{base}/login`。`omit` + `{base}/forbidden` → `redirected=false`，200，返回 shell。`omit` + `{base}/not-found` → `redirected=false`，200，返回 shell。`include` + `{base}/login` → `redirected=true`，final `{base}`（没有保存的 return URL）。**5 项都符合预期** | network（fetch 响应） | 看不到 Set-Cookie，无法确认 `pa-original-url` 是否写入；“登录后回到原地址”需要输入密码，没有执行；`/forbidden`、`/not-found` 之后 SPA 的跳转在 fetch 中看不到 |
+| A4 S-02 | 2026-10-21T04:00:17Z 起 | 整页加载 `/53105/dashboard` 后，确认 `typeof window.funding === 'undefined'`、没有加载过 `funding-developer-account.js`；hook `Node.prototype.appendChild`/`insertBefore`，把 `funding-developer-account.js` 的 `<script>` 改到 `https://invalid.invalid/blocked.js`；从 sidebar（Other tools → Funding，`/projects/317869/funding`）客户端导航进入 | 客户端导航（同一文档） | 3 s、15 s、35 s、约 60 s 时：`__blocked.length` 都是 **1**；页面上 **1 处** “Failed to load: …funding-developer-account.js”；同时有 **1 个持续旋转**的元素（styled-components，`animation-name: fvtopB`）。离开到 dashboard 再从 sidebar 回到 funding：`__blocked.length` 变为 **2**（重新尝试注入并再次失败），页面上又是 1 处报错和 1 个持续转圈。**符合 S-02**：首次加载失败时，第二个调用者不再注入脚本、一直转圈；失败后才挂载的调用者会重试 | DOM、JS hook | 第一次点击 sidebar 链接没有生效（链接所在分组折叠），改为对同一个 `<a>` 调用 `click()`，仍是 react-router 客户端导航；没有确认报错和转圈分别位于 nav 区和 App 区；离开页面后的持续轮询基于定时器，不产生网络请求，**无法观察** |
+| A5a S-04 | — | — | — | **未执行** | — | 需要以 admin 身份切换到其他 merchant 再进入财务页，会改写 merchant 相关 cookie，超出本次“在 53105 上只读验证”的范围；该项本身是可选项 |
+| A5b | — | — | — | 未由 Claude 执行；已由另一会话用 Playwright 匿名 headless 完成，结论见 spec 0.3.7 §10.3（OBS-BOOT-002 证实：abort 与 500 都白屏） | — | — |

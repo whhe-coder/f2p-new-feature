@@ -1,8 +1,8 @@
 # web-games-account 回归测试
 
-> 依据：`../web-games-account_reverse_spec.md` v0.3.1
+> 依据：`../web-games-account_reverse_spec.md` v0.3.7
 > 代码基线：`master@772a320`；当前分支 `WASP-2524-migrate-tests-to-apps` 的行为差异标为 `[分支差异]`
-> 生成日期：2026-10-21 · 计划：[00-exploration-plan.md](00-exploration-plan.md)（P4）
+> 生成日期：2026-10-21 · 计划：[00-exploration-plan.md](00-exploration-plan.md)（P10）
 > 状态：用例来自阅读源码。2026-10-21 已在 stage 上只读执行阶段 0–3，结果见 [stage-results-2026-10-21.md](stage-results-2026-10-21.md)
 
 ## 0. stage 验证结论（2026-10-21）
@@ -20,14 +20,14 @@
 
 | 文件 | 范围 | 用例数 | P0 | P1 | P2 | `[分支差异]` |
 |---|---|---|---|---|---|---|
-| [T1-boot-auth.md](T1-boot-auth.md) | 启动、token/会话、merchant 访问守卫、错误页、安全 | 66 | 13 | 28 | 25 | 16 |
-| [T2-routing-access.md](T2-routing-access.md) | 路由清单、legacy redirect、权限 × 菜单矩阵、项目作用域、导航 | 126 | 10 | 68 | 48 | 11 |
-| [T3-home-dashboard.md](T3-home-dashboard.md) | 首页分流、Get Started、Dashboard、设置、横幅/聊天、i18n、埋点 | 100 | 9 | 41 | 50 | 23 |
+| [T1-boot-auth.md](T1-boot-auth.md) | 启动、token/会话、merchant 访问守卫、错误页、安全 | 68 | 13 | 29 | 26 | 16 |
+| [T2-routing-access.md](T2-routing-access.md) | 路由清单、legacy redirect、权限 × 菜单矩阵、项目作用域、导航 | 128 | 10 | 69 | 49 | 11 |
+| [T3-home-dashboard.md](T3-home-dashboard.md) | 首页分流、Get Started、Dashboard、设置、横幅/聊天、i18n、埋点 | 101 | 9 | 41 | 51 | 23 |
 | [T4-remote-frame.md](T4-remote-frame.md) | remote 加载（MF1/MF2/SDK）、iframe、本地 endpoint、cookie 安全 | 105 | 4 | 45 | 56 | 1 |
 | [T5-registration-mcp.md](T5-registration-mcp.md) | 注册问卷、邮箱验证、法律协议、`/login/mcp` OAuth | 92 | 15 | 44 | 33 | 5 |
-| **合计** | | **489** | **51** | **226** | **212** | **56** |
+| **合计** | | **494** | **51** | **228** | **215** | **56** |
 
-spec 的 OBS 条目全部有用例覆盖。T1、T2、T4 已按 spec 0.3.1 更新（P4），T3、T5 已按 0.3.0 更新（P3，0.3.1 对它们没有影响）。每个文件末尾都有 “U 项处理结果”、“spec 勘误” 和 “覆盖统计” 三节。
+spec 的 OBS 条目全部有用例覆盖。T1–T4 已按 spec 0.3.2 更新（P5），T5 已按 0.3.0 更新（P3，之后的版本对它没有影响）；spec 0.3.3 不影响用例（P10）。每个文件末尾都有 “U 项处理结果”、“spec 勘误” 和 “覆盖统计” 三节。
 
 ## 2. 执行顺序
 

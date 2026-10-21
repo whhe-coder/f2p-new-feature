@@ -1,0 +1,151 @@
+# stage 验证结果 2026-10-21
+
+> 计划：[stage-verification-plan.md](stage-verification-plan.md) · 分类：[stage-verification-appendix.md](stage-verification-appendix.md)
+> 执行者：Claude（Claude in Chrome，只读）· 状态：阶段 0–3 已完成，阶段 4 等待你的决定
+
+## 0. 环境
+
+| 项 | 值 |
+|---|---|
+| stage 地址 | `https://accounts-sdk-skeleton.nl-k8s-stage.srv.local/for/web-games/account` |
+| 部署构建 | `stage-web-games-20261005-03` = commit `c1b5e37`（2026-10-05） |
+| 与用例基线的关系 | 比 spec 基线 `master@772a320` **落后 52 个 commit**（19 个非测试 commit）。仓库中已有 tag `stage-web-games-20261020-05`，但 stage 仍在运行 10-05 的构建 |
+| 不适用的用例 | stage 构建中没有 MCP 登录（无任何 mcp 文件），T5 的 RT-MCP-* 全部 `N/A`；onboarding 的 ToU 勾选框（`cfad95a`）不在 stage 上，相关 CONSENT 用例 `N/A` |
+| 3 个缺陷的代码 | `sections.ts`、`available-domains.ts`、`UpsellModal/index.tsx`、`upsell.ts` 在 `c1b5e37` 与 `772a320` 之间**没有变化**，复现结论适用 |
+| 账号画像 | Xsolla admin（`user.admin=true`、`ROLE_ADMIN`），1 个 org `53105`，828 个 privilege，198 个 merchant feature，687 个项目，20 个模块（含 Ontology）。对应统一账号表 U-ADMIN；不是普通 owner，admin 会跳过部分守卫 |
+| 观测方式 | `read_network_requests` 在整页刷新时会丢请求，所以改用 `performance.getEntriesByType` 读请求顺序和状态码；请求头通过在页面中 hook `XMLHttpRequest`/`fetch` 读取 |
+| 页面性能 | 权限请求在冷启动约 19 s 后才发出；`/{m}` 到 `/dashboard` 约 9 s |
+
+## 1. 结果
+
+| ID | 优先级 | 结果 | 实际行为 | 备注 |
+|---|---|---|---|---|
+| RT-BOOT-001 | P0 | PASS（部分） | `GET /api/v1/modules`（1282 ms）是第一个 gateway 请求；`get_init_info`（5380 ms）、`/api/organization/53105/detail`（6400 ms）都在其后 | 看不到请求头，没有验证 modules 不带 `Authorization` |
+| RT-BOOT-005 | P2 | PASS | `__INITIAL_STATE__` 有 `projects`、`user`，token 为 `null`；另有 `application: {locale}` | `projects` 只有 `currentID` |
+| RT-BOOT-006 | P0 | **FAIL** | a) `/for/web-games` → 服务器 404 “Cannot GET /for/web-games”，SPA 没有加载；b) `/for/web-games/?a=1#x` → 最终落地 `/for/web-games/account/53105`，`?a=1#x` 在后续跳转中丢失 | a 是服务端行为：BFF 只挂载 `/for/:site/*`。T1 原标“待确认”，现已确认 |
+| RT-BOOT-007 | P2 | **FAIL** | 同 BOOT-006a，裸 `/for/web-games` 返回 404 | |
+| RT-BOOT-008 | P1 | **FAIL（部分）** | 打开 `https://{host}/` 页面标题为 “Error”，停留在 `/`，没有 replace 到 `{base}` | 第二步（删除 `account-platform-site-id` cookie）没有执行：JS 看不到该 cookie 的 domain/path，无法可靠恢复 |
+| RT-BOOT-010 | P1 | PASS | console 有 `[Gateway] Authenticated request` | 说明 `APP_ENV≠production` |
+| RT-BOOT-011 | P2 | PASS | `GET /api/v1/modules` 200，body 形如 `{code, result: {data, total}, trace_id}` | |
+| RT-AUTH-005 | P0 | PASS | 没有 `/server/token` 请求；`get_init_info?org_id=53105` 200 | |
+| RT-AUTH-007 | P0 | PASS | SPA 进入 dashboard 后的 14 个 gateway 请求（XHR 与 fetch）都带同一个 `Bearer` token，`Business-Account-Id: web-games` | SDK 的 `get_init_info`/`privileges` 在 SPA 跳转时没有重新发出，未覆盖 |
+| RT-AUTH-016 | P0 | PASS（3/4）+ **FAIL（1/4）** | `/login` → 302 `{base}` → `/53105` → `/dashboard`；`/signup`、`{base}/` → `/53105` → `/dashboard`，没有闪现登录表单；**`/resetting` 也被重定向到 `/53105`** | 预期 `/resetting` 不重定向。账号只有 1 个 org，多 org 部分未覆盖 |
+| RT-AUTH-020 | P2 | N/A | | 当前账号是 admin，用例不适用 |
+| RT-MAG-001 | P0 | PASS | `get_init_info?org_id=53105` 只请求 1 次，页面正常 | |
+| RT-MAG-004 | P1 | BLOCKED（admin 变体已记录） | admin 打开 `/999999999/dashboard`：停留在该 URL，`get_init_info?org_id=999999999` **200**；`/api/organization/999999999/detail` 404 三次、`projects/paged/lite` 404；页面渲染 shell，没有错误提示 | 非 admin 的预期需要 U-FOREIGN 账号。admin 打开不存在的 merchant 时没有错误页，并重复请求 3 次，建议记为 P2 可疑点 |
+| RT-MAG-009 | P2 | PASS | `/0/dashboard` → 302 → `/53105/dashboard`；`/0` → `/53105`；没有 `org_id=0` 请求 | |
+| RT-MAG-011 | P2 | PASS（附观察） | `/053105/dashboard` 正常渲染；API 路径与页面链接中**同时**出现 `053105` 和 `53105` | id 形式不统一 |
+| RT-ERR-003 | P2 | PASS | 显示 “Something went wrong / An unexpected error occurred”，没有 404 和 `x`，没有渲染 `<b>`，没有 sidebar，console 无错误 | |
+| RT-SEC-003 | P1 | PASS | `__INITIAL_STATE__` 中 token 为 `null`；没有内联含 `__INITIAL_STATE__` 的脚本 | spec 0.3.0（T1-E4）：清空发生在 SDK `AuthChecker` 完成 hydration 之后 |
+| RT-SEC-004 | P0 | PASS | `document.cookie` 中没有 `pa-v4-token` | |
+| RT-SEC-101（S-01） | P0 | **FAIL（缺陷已复现）** | `document.cookie` 中有 `gc-pa-v4-token`：3 段式 JWT，未过期，payload 含 `email`、`groups`、`id` 等；**值与当前会话的 Bearer token 完全相同**。在 dashboard 页面就能读到（cookie Path 为 `/`，访问过 storefront 后一直保留） | 任何能在页面执行的脚本都能拿到会话 token |
+| RT-MF-001 | P0 | PASS | `window.__modules` 为数组（20 项）；`APP_ENV === 'stage'`；`ontologyModuleUrl` 以 `?<uuid>` 结尾；modules 只请求 1 次，在业务请求之前 | |
+| RT-ROUTE-035 | P0 | PASS（①） | 有 setup selection（`gamesPortal`）时，`/53105` 约 8.8 s 后进入 `/53105/dashboard` | ②③ 需要其他账号或删除 selection |
+| RT-HOME-001 | P0 | PASS | 同 ROUTE-035 ① | |
+| RT-DASH-005 | P0 | PASS | “Performance” 标题；Balance `$0.00`；Last payout `Sep 7, 2022`；Next payout `—`；XAA board（Sales、Antifraud 等 widget）渲染 | |
+| RT-ROUTE-001 | P1 | PASS（6/7）+ 待确认 | `/forbidden`、`/not-found`、`/error`、`/account-restricted`、`/enter-account`、`/verification` 的 URL 不变，都没有 sidebar；**`/account-no-access` 被重定向到 `/53105/dashboard`** | 可能是有访问权限的用户会被该页送回首页（SDK 行为），需要确认 |
+| RT-ROUTE-002 | P2 | PASS | `/forbidden/x`、`/error/x`、`/account-no-access/x`、`/enter-account/x`、`/login/mcp/x` → `/not-found`；`/not-found/x` 保持 URL | |
+| RT-ROUTE-004 | P1 | PASS | 8 个未知子路径都落到 `/not-found` | |
+| RT-ROUTE-005 | P2 | PASS | `/53105abc` → `/not-found` | |
+| RT-ROUTE-006 | P1 | PASS | `/dashboard/`、`/settings/company/`、`/projects/{p}/` 正常渲染；`/53105/` → `/dashboard` | |
+| RT-ROUTE-007 | P2 | PASS | `/support` → `/support/transactions`；`/support/` 保持 URL，内容区没有标题 | |
+| RT-ROUTE-008 | P2 | PASS（附发现） | `/DASHBOARD`、`/Settings/Company` 都能渲染；**`/Settings/Company` 显示了 shell sidebar，而小写的 `/settings/company` 不显示** | chrome 显隐规则区分大小写 |
+| RT-ROUTE-010 | P2 | PASS | `?u=https://a.b` 保持不变 | |
+| RT-ROUTE-011 | P1 | PASS | `/support-hub` → `/communication-hub`，无 sidebar | |
+| RT-ROUTE-012 | P2 | PASS（master 预期） | `/support-hub/inbox?x=1` → `/communication-hub`，子路径与 query 丢失 | |
+| RT-ROUTE-013 | P1 | PASS | `/analytics/products/site-builder?period=7d#top` → `/analytics/web-shop?period=7d#top` | |
+| RT-ROUTE-014 | P2 | PASS | `/analytics/products/login?d=1` → `/analytics/engagement?d=1` | |
+| RT-ROUTE-015 | P2 | PASS | `foo` 和 `Site-Builder` → `/analytics/payments`，无 query | |
+| RT-ROUTE-016 | P1 | PASS | 3 个入口都落到 `/analytics/payments` | |
+| RT-ROUTE-017 | P1 | PASS | chargeback-registry URL 不变，页面标题 Anti-fraud | |
+| RT-ROUTE-018 | P1 | PASS | `/support?x=1` → `/support/transactions`（无 query）；`/support/tickets` 渲染 Support tickets | |
+| RT-ROUTE-022 | P1 | PASS（部分） | marketplace、communication-hub、settings/company、settings/api_key、profile 都没有 sidebar | editor 与 get-started 部分见 HOME-002 |
+| RT-ROUTE-024 | P2 | PASS | `/funding` → `/funding/start`（Funding Club）；`/funding/requests/1` 渲染；sidebar 中没有 merchant 级 funding 入口 | |
+| RT-ROUTE-025 | P2 | PASS | `/frame/reports` 渲染；`/frame` → `/not-found` | |
+| RT-ROUTE-026（D1 gold） | P1 | PASS（缺陷现状） | `/53105/gold` → `/not-found` | D1 仍存在 |
+| RT-ROUTE-027（D1 link） | P1 | PASS（master 现状） | `/53105/link` → `/not-found` | |
+| RT-ROUTE-028 | P2 | **FAIL（新发现）** | `/53105/'gold'`、`/53105/'link'` 匹配到路由（URL 编码为 `%27`），但页面崩溃：ErrorBoundary 显示 “Something went wrong”，错误为 `Minified Redux error #7` | 与 metaframe 是同一种崩溃 |
+| RT-ROUTE-029 | P1 | PASS（部分） | `/profile` 渲染且无 sidebar；`/profile/x` → `/not-found` | 未从 topbar 点击进入 |
+| RT-ROUTE-033 | P2 | **FAIL（相对 P3 预期）** | `/verification/x` 渲染 Two-step verification 页面，URL 不变 | T2 P3 已把预期改为 `/not-found` |
+| RT-ACC-001 | P0 | **FAIL（1/32）** | 31 个 gated 路由都进入成功，没有 `/forbidden`；**`/53105/metaframe` 崩溃**（直接整页打开也一样，`Minified Redux error #7`） | 见下方“崩溃后应用卡死” |
+| RT-ACC-022 | P2 | PASS | `/finance/payouts` 渲染 | |
+| RT-PROJ-001 | P0 | PASS | `/projects/317869` 渲染；sidebar 中 28 个项目链接都指向 317869 | |
+| RT-PROJ-002 | P0 | PASS | `/projects/999/storefront/promotions?tab=a#x` → `/projects/317869/storefront/promotions?tab=a#x` | |
+| RT-PROJ-009 | P1 | **FAIL（新发现）** | `/projects/0/sdk` **没有被改写**，按项目 0 渲染 | 原因：`getProjectRouteRedirectId` 在 `isProjectsComplete=false` 且项目未被标为 inaccessible 时返回 `null`。该账号有 687 个项目，列表分页未加载完；`999` 被改写是因为详情 404 后被标为 inaccessible |
+| RT-PROJ-010 | P2 | PASS | `/projects/0317869` 不改写，正常渲染 | |
+| RT-PROJ-017 | P1 | PASS（3/4）+ 待确认 | `/edit`、`/edit/advanced` 渲染；`/edit/webhooks` → `/edit/webhooks/store`；**`/edit/event-api` → `/edit/advanced`** | 可能是 pay-station remote 内部的路由行为 |
+| RT-NAV-002 | P1 | PASS | sidebar 内部链接都以 `/for/web-games/account/53105/` 开头 | |
+| RT-NAV-003 | P1 | PASS（属性） | Receipt customizer、Email customizer 外链都带 `target=_blank`、`rel=noopener noreferrer` | **附发现**：stage 上 Email customizer 指向生产域名 `https://sitebuilder.xsolla.com/...`，地址写死在 `layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:413` |
+| RT-HOME-002 | P0 | PASS | 删除 selection 后，`/53105` → `/get-started`；两张卡，Games Portal 在前、“Add Xsolla to your stack” 在后；无 shell sidebar、无 promo banner；顶部为 NavigationLite（显示 merchant 名） | 验证后已恢复 `gamesPortal` |
+| RT-HOME-012 | P0 | PASS | 点 Games Portal 的 Choose：key=`gamesPortal`，URL 不变，`history.length` 不增加，sidebar 恢复，出现 toast “…account is ready” | |
+| RT-HOME-013 | P0 | PASS | 点 “Add Xsolla to your stack” 的 Choose：key=`additionalServices`，显示 Pay Station / Xsolla Login / Web Shop / Offerwall 引导和 toast | 验证后已恢复 `gamesPortal` |
+| RT-HOME-014 | P1 | PASS | 点 Switch setup：key 被删除，URL 不变，回到 Choose UI，sidebar 隐藏 | |
+| RT-DASH-001 | P0 | BLOCKED | | 账号 balance 为 0，需要有交易的 merchant |
+| RT-DASH-002 | P0 | PASS | 显示 `[data-id=ask-ai-banner]`，没有 “Welcome,” | |
+| RT-SET-001 | P0 | PASS | 无 shell sidebar；有 “Back to account”；settings 侧栏显示 Company settings / API keys / Administration；全局 promo banner 不显示，内容区顶部显示 PAInfoBanner | |
+| RT-UI-010 | P1 | PASS | `script[data-id=xsolla-chat-script]` 与 `#livechat` 各 1 个；`LiveChatWidget.type="bap"`；有 visitor；`role=ROLE_ADMIN` | |
+
+| RT-PROJ-011 | P0 | PASS | 在 `/projects/317869/storefront/promotions?x=1` 用 topbar “Select project” 切到 jtest1：URL 变为 `/projects/318360/storefront/promotions?x=1`，sidebar 项目链接都指向 318360 | 验证后已切回 Test Template（317869） |
+| RT-REG-004 | P0 | PASS | `{base}/registration` → `/53105` → `/53105/dashboard`，没有闪现问卷 | |
+| RT-MCP-008 / RT-MCP-010 | P0 | N/A | | stage 构建 `c1b5e37` 中没有 MCP 登录 |
+
+### 1.1 崩溃后应用卡死（新发现）
+
+在 SPA 内从 `/53105/metaframe`（崩溃）继续跳转到其他 23 个路由，包括 `/53105/dashboard`，**每个都显示 “Something went wrong”**，sidebar 消失。只有整页刷新才能恢复。说明根级 ErrorBoundary 不会在路由变化时重置，用户只能刷新页面。
+
+### 1.2 T4 remote 与安全
+
+| ID | 优先级 | 结果 | 实际行为 | 备注 |
+|---|---|---|---|---|
+| RT-MF-011/013/014/015 等（remote 加载） | P1 | PASS（加载层面） | 首次进入时各自请求 remoteEntry：`xaa-widgets/mf/remoteEntry.js`（dashboard）、`cloudgaming-publisher-tools-stage/…/remoteEntry.dashboard.js`、`sdk-intergration-widget/assets/remoteEntry.js`、`launcher-stage/remoteEntry.js`；同一页面生命周期内再次进入不会重复请求 | 跨域请求的 `responseStatus` 为 0（对方没有 `Timing-Allow-Origin`），状态码看不到。fiber props 检查没有执行 |
+| RT-MF-015 | P1 | 附观察 | `/projects/{p}/launchers` → `/projects/{p}/new-launcher` | |
+| RT-MF-028 | P1 | PASS（整页）/ **待复核（SPA）** | 整页打开 `/projects/{p}/subscriptions` 正常；在 SPA 内从 `/support/subscriptions` 跳到**裸路径** `/projects/{p}/subscriptions` 时，2/2 次崩溃（“Something went wrong”）。通过 sidebar 点击（目标为 `/subscriptions/plans`）则正常 | 同一个 subscriptions container 的两个 exposed module 先后挂载 |
+| RT-SEC-101（S-01） | P0 | **FAIL（缺陷已复现）** | 补充 cookie 属性：`gc-pa-v4-token` 为 host-only、`Path=/`、`Secure`、`SameSite=Lax`（默认值）、会话级，JS 可读 | 同时存在 `gc-pa-merchant-id`、`gc-pa-project-id`、`gc-pa-locale`（无 Secure） |
+
+## 2. 缺陷复现（阶段 2）
+
+| 缺陷 | 结果 | stage 证据 | 还缺什么 |
+|---|---|---|---|
+| RT-ACC-027（S-18，section 角色进入公司设置/成员页） | BLOCKED | 当前账号是 admin，无法验证 | 需要切换到 webdev（section 角色）会话，只读即可复现 |
+| RT-FRAME-002（S-03，iframe allowlist） | 静态证据已确认 | stage 部署的 bundle 中，判断逻辑为 `Object.keys(map).find(k => url.startsWith(k))`，与源码一致，所以 userinfo、后缀子域等绕过方式在 stage 上同样成立 | 完整复现需要改写 `salescards/{id}` 响应（C 类，交给 QA） |
+| RT-DASH-024 / RT-FRAME-010（S-20 / AC-13，Upsell 跳转缺 basename） | 后果已确认 | 缺 basename 的落地地址 `https://{host}/53105/dashboard?upsell-card-id=1` 由服务器直接返回 **404 “Cannot GET /53105/dashboard”** | 完整复现需要打开 Upsell 弹窗并选择项目，会发出 `PUT handle_all_utms` 和 `POST assign_to_user`（D 类，需要你逐项确认） |
+| S-01（storefront JWT） | **已复现** | 见 RT-SEC-101 | — |
+
+## 3. 汇总
+
+### 3.1 执行情况
+
+| 阶段 | 计划 | 执行 | 结果 |
+|---|---|---|---|
+| 0 环境识别 | 4 步 | 4 步 | 发现 stage 运行的是 10-05 的构建 `c1b5e37` |
+| 1 P0 只读冒烟（A 类 P0，22 条） | 22 | 22 | PASS 16、FAIL 3（BOOT-006、ACC-001 的 metaframe、SEC-101/S-01）、BLOCKED 1（DASH-001 无交易数据）、N/A 2（MCP-008/010）。另外顺带执行了 3 条 B 类 P0：AUTH-016（3/4 通过，`/resetting` 失败）、ROUTE-035 ①、DASH-002 通过 |
+| 2 缺陷复现 | 3 + S-01 | 4 | S-01 已复现；S-03、S-20 取得 stage 证据；S-18 需要 webdev 账号 |
+| 3 A 类 P1/P2 | 125 | 约 55 | 主要覆盖 T1、T2 路由与项目、T3 首页与设置、T4 remote 加载。未执行：fiber props 检查、埋点 payload、padding/滚动等 P2 细节 |
+| 4 需要你协助 | B 168 + D 79 | 0 | 等你决定，见 §3.3 |
+
+### 3.2 新发现的问题（stage 实测）
+
+| # | 严重度（建议） | 问题 | 用例 |
+|---|---|---|---|
+| F1 | 高 | `gc-pa-v4-token` 是 JS 可读的会话 JWT，与 Bearer token 相同（S-01） | RT-SEC-101 |
+| F2 | 高 | `/53105/metaframe` 必定崩溃（Redux error #7）；崩溃后在 SPA 内跳到任何路由都显示错误页，只有刷新才能恢复。spec 0.3.2：根因为 S-35（`Root.fetchRouteData` 把 `fetchProjectsLite` 返回的 Promise 当 action dispatch）；不随路由重置记为 U-14 | RT-ACC-001、§1.1 |
+| F3 | 中 | stage 仍运行 10-05 的构建 `c1b5e37`，虽然仓库已有 tag `stage-web-games-20261020-05`。MCP 登录、ToU 勾选框、MCP 注册修复等都不在 stage 上 | §0 |
+| F4 | 中 | 项目列表未加载完（项目数超过一页）时，`/projects/0/...` 不会被改写，按项目 0 渲染 | RT-PROJ-009 |
+| F5 | 中 | Upsell 跳转的落地地址在 stage 上返回 404（S-20 的实际后果） | RT-DASH-024 |
+| F6 | 低 | `/53105/'gold'`、`/53105/'link'` 能匹配路由但会崩溃（Redux error #7），与 metaframe 同一根因 S-35 | RT-ROUTE-028 |
+| F7 | 低 | 大写 URL `/Settings/Company` 显示了 shell sidebar，chrome 显隐规则区分大小写（spec 0.3.2：S-38） | RT-ROUTE-008 |
+| F8 | 低 | stage 上的 Email customizer 链接指向生产域名 `sitebuilder.xsolla.com`（写死在 `nav-items-config.tsx:413`；spec 0.3.2：S-37） | RT-NAV-003 |
+| F9 | 低 | admin 打开不存在的 merchant 时，渲染 shell、没有错误提示，`/api/organization/{id}/detail` 重复 404 三次 | RT-MAG-004/006 |
+| F10 | 低 | 已登录用户打开 `/resetting` 被 SDK `LoginPage` 重定向到 `/{mid}`，无法改密码（T1 P3 已查明是基线代码行为） | RT-AUTH-016 |
+| F11 | 待复核 | SPA 内直接进入裸路径 `/projects/{p}/subscriptions` 会崩溃 | RT-MF-028 |
+| F12 | 待确认 | `/account-no-access` 对有权限用户重定向到 dashboard；`/edit/event-api` 重定向到 `/edit/advanced` | RT-ROUTE-001、RT-PROJ-017 |
+| F13 | 信息 | 裸路径 `/for/web-games` 和主机根 `/` 由服务器返回 404，SPA 的规范化逻辑在 stage 上不会生效（BFF 只挂载 `/for/:site/*`，`bff-routes.ts:211,231,242,400`） | RT-BOOT-006/007/008 |
+
+### 3.3 需要你决定（阶段 4）
+
+| 类别 | 数量 | 需要什么 |
+|---|---|---|
+| B：其他账号 | 168 | 在这个 Chrome 中切换到 owner（非 admin）、viewer、webdev/junior、多 org、ToU 待签等账号的会话。webdev 会话能直接复现 S-18 |
+| D：写入/不可逆 | 79 | 对每个操作逐项确认，例如 Upsell 弹窗（S-20 完整复现）、登出（放在最后）、语言切换 |
+| C：改写响应 | 70 | 交给 QA，用 DevTools Local overrides / Requestly 执行 |
+| E：不可在 stage 验证 | 7 | 只记录原因 |

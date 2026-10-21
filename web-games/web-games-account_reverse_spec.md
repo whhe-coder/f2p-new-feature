@@ -1,7 +1,7 @@
 # Reverse-Engineered Specification: web-games-account（Web Games 发行商账户 Host）
 
 > Status: draft（只读源码得出；未在运行时验证）
-> Document version: 0.3.3
+> Document version: 0.3.4
 > Last updated: 2026-10-21
 > Evidence snapshot:
 > - Host 代码：`web-games-account` `master` @ `772a320dc6010323957e3d536495f5a0868fada0`（commit time 2026-10-20T09:57:39Z，"Merge branch 'BIZA-524-add-v-1-contract-baselines-for-the-v-2-upgrade'"）。
@@ -20,6 +20,7 @@
 | 0.3.1 | 2026-10-21 | 按第三轮独立 review 修正（6 条全部核实成立）：<br>• OBS-MAG-002 / AC-01：整页加载外部 merchant 会出现 HydrationError，不会跳回自己的 org。新增 AC-01b、S-34<br>• §2.3 与 OBS-AUTH-009：BFF 的 302 规则<br>• OBS-AUTH-002/008、§8.1：BFF 会话 cookie 与 JS cookie 同名 `pa-v4-token`<br>• §2.4：EnterAccountGate 跳过的路径前缀<br>• OBS-MF-002：错误文案不止 4 种<br>• LocaleProvider 的证据路径；恢复 §6 中 ontology 依赖 cookie 的说明，以及 §13 中"不向用户暴露 remote URL"的建议 | master @ 772a320 + 同版本 SDK |
 | 0.3.2 | 2026-10-21 | 两类输入：<br>（1）第四轮独立 review 的 5 条，全部按可执行路径核实成立：<br>　• OBS-I18N-002：`?locale=` 在用户数据加载后会被 profile 覆盖<br>　• OBS-PROJ-001：`getProjectRouteRedirectId` 的完整分支，以及"不可访问"触发的改写<br>　• §2.3 / OBS-AUTH-009：BFF 在服务端解析 `0` 哨兵 ID<br>　• OBS-AUTH-002：客户端导航时 URL token 会替换会话 token<br>　• OBS-FRAME-003：DocumentCenter 的 message 监听只上报 analytics<br>（2）stage 运行时记录：新增 §10.3；新增 S-35（metaframe 必崩）、S-36、S-37、S-38；BFF 只挂载 `/for/:site/*` 带来的影响（OBS-BOOT-005/006、S-20）；关闭 U-12；新增 U-14 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.3 | 2026-10-21 | 更正 §10.3 的适用范围：stage（`c1b5e37`）的 SDK 是更旧的补丁版本，host 的差异也比 0.3.2 所写的多；依赖 SDK 的运行时观察降为佐证 | `git diff c1b5e37 772a320` |
+| 0.3.4 | 2026-10-21 | 合入 stage Batch A：执行 5 项，未执行 3 项。U-05 在 stage 上关闭；证实 S-21、OBS-ROUTE-003/005/006 与 BFF 的 `/0/…` 分支；按 `bff:merchant-sentinel.ts:186-247` 细化 OBS-AUTH-009 的哨兵分支（包括预算不足和请求超时）；§6 补充 finance 与 support 共用 container | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 
 ## 0. 阅读约定
 
@@ -286,10 +287,12 @@ The BFF then clears the session cookie, the return-URL cookie and the merchant c
   | Request | Result |
   |---|---|
   | `/0/…` | 302 to the default org, keeping the path |
+  | `/0/…`, `get_init_info` failed or the time budget is spent | serves the shell; the SPA resolves the merchant |
+  | `/0/…`, no org on record | 302 to `{base}` |
   | `/{m}/projects/0/…` | 302 to the first project |
-  | `/{m}/projects/0/…`, no projects or list request failed | 302 to `{base}/{m}/`, dropping the path |
-  | no org on record | 302 to `{base}` |
-  | `get_init_info` failed, or the time budget is spent | serves the shell |
+  | `/{m}/projects/0/…`, the time budget is spent, the list request failed or timed out (`AbortSignal.timeout`), or there are no projects | 302 to `{base}/{m}/`, dropping the path |
+
+  The cases are from `bff:merchant-sentinel.ts:186-247`. On stage, an account with 687 projects was sent from `/{m}/projects/0/edit` to `/{m}/`. The code does not tell which of the last row's causes applied [I] (§10.3).
 
 - **Full-page request with a live session**（`bff:bff-routes.ts:169-188`）:
   - `/login`: the BFF shall 302 to the saved return URL (`pa-original-url`, which it then clears), or else to `{basename}`.
@@ -801,14 +804,14 @@ URL 来源："gateway" 指 `GET /api/v1/modules` 返回的 `urls[APP_ENV]`。"+s
 | payments | `payments` / default | gateway | `token` | — |
 | webhooks-store（经 project-settings） | storefront、subscriptions、payments 的多个 expose | gateway | `token` | `webhookSecrets` 恒为 `[]`，因为 webhooks slice 的 thunk 从未被 dispatch（§11.3）；货币列表来自 `/mapi/merchant/current/currency/list` |
 | Support | `support` / default、`subscriptions` / `./support` | gateway | `token` | — |
-| CommunicationHub | `communication_platform_v2/SupportHubV2`（MF 2.0），回退 MF1 `communication_platform` | gateway（派生 manifest） | `token` | MF1 回退依赖 gateway 中该 module 的默认 expose [U] |
+| CommunicationHub | `communication_platform_v2/SupportHubV2`（MF 2.0），回退 MF1 `communication_platform` | gateway（派生 manifest） | `token` | MF1 回退使用 gateway 中该 module 的默认 expose。stage 的 module 列表中它是 `./SupportHubV2`，入口文件为 `remoteEntry.js`（§10.3） |
 | xsolla-gold | `xsolla-gold` / default | gateway | `loginToken` | 项目级 `P/gold` 可达；merchant 级不可达（D1） |
 | xsolla-link | `xsolla-link` / default | gateway | `token` | 对非 admin 在 **render 中** `history.push('/forbidden')`；项目级 `P/link` 可达 |
 | metaframe | `metaframe` / default | gateway | `token` | — |
 | subscriptions | `subscriptions` / default | gateway | `token` | — |
 | advanced-analytics、Dashboard | `xaa_widgets` / default（用 `componentName` 选 board） | gateway | `tokenJWT` | — |
 | ChargebackRegistry | `disputes` / `./app` | gateway+static | `token` | — |
-| finance | `finance` / default | gateway | `token` | — |
+| finance | `finance` / default | gateway | `token` | stage 的 module 列表中，`finance` 与 `support` 共用 `scope=transactions_publisher_account` 和同一个入口文件 `transactions_publisher_account.js`，所以两者共享一个 MF1 container。funding 的入口文件为 `funding-developer-account.js`。这三个都不是 `remoteEntry.js`，所以 MF 2.0 的 manifest 派生不适用于它们（§10.3） |
 | Funding | `funding` / default + `./nav` | gateway | `token` | 两个入口同 scope 同时挂载，是 S-02 的稳定复现路径 |
 | login（project） | `login` / `./App` | gateway+static | `token` | — |
 
@@ -1045,7 +1048,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | OBS-REG-001 | Host → SDK `CreateProjectOnboarding` → gateway | `pp:projects/CreateProjectOnboarding.tsx` | I13 stand-in 规则错误（T-01） | unknown | 772a320 + SDK | source-verified；测试资产有缺陷 | 修正 stand-in 与 I13 断言；在 stage 确认 Step 2 刷新与 Skip 后的新会话行为（S-33）；owner：host 团队 |
 | OBS-REG-003 | SDK LegalDocumentConsentGuard | `pc:auth/LegalDocumentConsentGuard/index.tsx` | I14 stand-in（缺少超时、admin、suppress） | unknown | 772a320 + SDK | source-verified；runtime unknown | 让 stand-in 与 SDK 对齐，或改用真实 guard；owner：host 团队 |
 | OBS-MF-001/002 | Host ↔ gateway module list ↔ remote | `RemoteModule.tsx`、`loadModule.ts` | 单元测试（mock） | e2e 健康断言只覆盖匿名场景 | 772a320 | partial | 登录后加载每个 remote 的 e2e；gateway 缺少条目时的负向测试；owner：host 团队 |
-| OBS-MF-003 | Host ↔ chat remote（MF 2.0 manifest） | `registerGatewayRemotes.ts`；`bridge@0.0.2` | 只有 `it.todo` | unknown | 772a320 + deps | source-verified（加载阶段）；remote 内部渲染错误 [U] | MF1 fallback 测试；确认 gateway 中 `communication_platform` 的默认 expose；owner：host 团队 + chat 团队 |
+| OBS-MF-003 | Host ↔ chat remote（MF 2.0 manifest） | `registerGatewayRemotes.ts`；`bridge@0.0.2` | 只有 `it.todo` | unknown | 772a320 + deps | source-verified（加载阶段）；remote 内部渲染错误 [U] | MF1 fallback 测试（stage 的默认 expose 已确认为 `./SupportHubV2`，§10.3）；prod 的 module 列表；owner：host 团队 + chat 团队 |
 | OBS-MCP-001/002/003 | Host ↔ Xsolla Login ↔ SDK RegistrationGuard | `oauthLogin.ts`；`pc:auth/RegistrationGuard` | `oauthLogin.test.ts` | e2e 的 2 个测试为 `test.skip`（stage build 早于该路由） | 772a320 + SDK | partial | Login 服务端的 `redirect_uri` 注册证据；注册未完成会话的 MCP 流程；owner：Login 团队 + host 团队 |
 | OBS-FRAME-001 | Host ↔ upsell backend 数据 | `available-domains.ts` | 有 7 个负向用例（`available-domains.test.ts:38-68`）和 loader 用例，但没有绕过用例 | — | 772a320 | suspected defect | 见 S-03；owner：host 团队 |
 | OBS-DASH-005 | Host ↔ 部署 basename | `UpsellModal/index.tsx:71-75`、`core/utils/upsell.ts` | 单元测试断言的是无 basename 的 `'/42'` | stage：不带 basename 的地址返回 BFF 404（§10.3） | 772a320；stage `c1b5e37` | suspected defect（运行时后果已观察） | 修复后在 stage 回归；owner：host 团队 |
@@ -1075,6 +1078,17 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-37 | Email customizer 外链在 stage 上也指向生产域名 | 证实 S-37 |
 | S-38 | `/{m}/Settings/Company` 渲染时显示 shell sidebar，小写路径不显示 | 证实 S-38 |
 | OBS-MCP-*、OBS-REG-001 | stage build 中没有 `/login/mcp` 路由，也没有 onboarding 的 ToU 勾选框 | 这些需求在 stage 上暂时无法验证 |
+
+**Batch A（spec 0.3.3 发起；admin 账号，只读）**
+
+| 关联 ID | 观察结论（有边界） | 对本文的影响 |
+|---|---|---|
+| U-05、OBS-MF-003、§6 | 20 个模块的 `urls` key 都是 `development/stage/production`。`communication_platform`：`module=./SupportHubV2`、`scope=communication_platform`，入口以 `remoteEntry.js` 结尾。`xaa_widgets`、`funding`、`finance`、`support` 都存在。funding、finance、support 的入口不是 `remoteEntry.js`；finance 与 support 共用 scope `transactions_publisher_account` | stage 的 U-05 已关闭（prod 仍未观察）。MF1 回退能挂载正确的模块 |
+| OBS-AUTH-009 | 整页打开 `/{m}/projects/0/edit`：一次重定向，落地 `/{m}/`，路径丢失，随后 SPA 进入 `/dashboard`。整页打开 `/0/dashboard`：落地 `/{m}/dashboard`，路径保留。工具看不到响应头，没有拿到 Location | `/0/…` 分支证实。项目哨兵落到"预算不足、列表失败或超时"分支，具体原因 [I]。BFF 版本两边相同，结论直接适用于 772a320 |
+| S-21、OBS-ERR-004 | 已登录用户在 `/forbidden`、`/not-found` 上，客户端导航和整页加载都显示 NavigationLite：静态 merchant 名称，没有切换器、用户菜单和语言切换 | 证实 S-21 |
+| OBS-ROUTE-003/005/006 | `//` 规范化丢掉 query 和 hash；`/support-hub/abc?x=1` → `/communication-hub`，子路径和 query 都丢掉；`/products/login?period=7d#k` → `/engagement?period=7d#k`；未映射的产品 → `/payments`，query 丢掉 | 全部证实 |
+| OBS-I18N-002、S-36（旁证） | `?locale=de` 约在 2.2 s 被删掉，早于 `get_init_info`（2.8–3.6 s）。4.6 s 首次出现可见文字时已经是 `en`，30 s 内没有变化 | 结论不确定：观察不到"先 de 再回 en"的过程，也不能排除旧版 SDK 根本没有应用 URL 中的语言。仍以源码结论为准 |
+| 未执行 | A3（无会话的 BFF 规则）、A4（S-02）、A5（S-04、OBS-BOOT-002）：工具不能开无痕窗口、不能屏蔽请求，也不能输入密码 | OBS-AUTH-009 的无会话规则、S-02、S-04、OBS-BOOT-002 仍只有源码证据 |
 
 ---
 
@@ -1180,7 +1194,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | U-02 | BFF `/server/token`、`/logout` 与 `__INITIAL_STATE__` 的契约是什么？ | 部分关闭 | 已核对 `bff:bff-routes.ts` 中 token 剥离、整页 `/login` 302、`/logout`、`PUBLIC_PATHS` 与内联 script 自删。仍需 hydration 失败时注入内容的源码核对，以及一次 stage hard reload 观察（记录 build id 和时区） | platform-bff 维护者 |
 | U-03 | SDK 包自己发起的 HTTP 调用有哪些，错误怎么处理？ | 部分关闭 | 注册、consent、项目创建、`get_init_info`、webhook storage 已列入 §7.2；完整清单仍需 SDK API 清单 | accounts-sdk |
 | U-04 | backend 是否在服务端校验 privilege、role、merchant 成员关系？客户端 guard 是 UX 还是安全边界？ | 未关闭 | gateway 授权文档，或直接调用 API 的负向测试 | gateway / backend |
-| U-05 | gateway module 列表的 `urls` key 是哪种形状？`communication_platform` 的默认 expose 是什么？ | 未关闭 | stage 与 prod 的 `/api/v1/modules` 响应快照 | host 团队 |
+| U-05 | gateway module 列表的 `urls` key 是哪种形状？`communication_platform` 的默认 expose 是什么？ | **stage 已关闭**；prod 未观察 | stage：key 是 `development/stage/production`，`communication_platform.module=./SupportHubV2`（§10.3）。prod 仍需一份响应快照 | host 团队 |
 | U-06 | 发布流程是什么？CI 没有 deploy job，`release` 脚本来自 `@accounts-sdk/release-account` | 未关闭 | 发布 pipeline 文档与 CDN 路径 | host 团队 / DevOps |
 | U-07 | `/settings/administration` 与 `/ontology` 的拒绝逻辑放在页面内，是否足够？ | 部分关闭 | administration：SDK 页面对非 admin 重定向到 `/settings/company`，并跳过数据请求。是否需要 route 级 gate 仍待产品决定 | host 团队 + 产品 |
 | U-08 | sidebar 折叠状态是否持久化？ | **已关闭（source）** | 不持久化。`ps:slices/globalSettings.ts` 的 `sidebarCollapsed` 只在内存中切换，刷新后恢复展开 | — |

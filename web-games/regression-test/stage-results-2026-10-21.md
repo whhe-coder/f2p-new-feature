@@ -149,3 +149,24 @@
 | D：写入/不可逆 | 79 | 对每个操作逐项确认，例如 Upsell 弹窗（S-20 完整复现）、登出（放在最后）、语言切换 |
 | C：改写响应 | 70 | 交给 QA，用 DevTools Local overrides / Requestly 执行 |
 | E：不可在 stage 验证 | 7 | 只记录原因 |
+
+## 4. Batch A（spec 0.3.3）
+
+> 请求方：spec-miner 会话。执行者：Claude（Claude in Chrome，只读）。
+> 公共条件：host `accounts-sdk-skeleton.nl-k8s-stage.srv.local`；build `stage-web-games-20261005-03`（`c1b5e37`）；账号 Xsolla admin（`ROLE_ADMIN`），merchant `53105`，已登录会话；时间为 UTC。
+> 观测方式：network 指 `performance` resource/navigation timing 和页面内 `fetch`（看不到响应头，所以看不到 302 的 Location 头，只能看到 `redirectCount` 和落地 URL）；DOM 指页面元素；console 指 console 日志。
+
+| # | 时间（UTC） | 路由 / API | 加载方式 | 观察结果 | 证据 | 局限 |
+|---|---|---|---|---|---|---|
+| A1 U-05 / OBS-MF-003 | 2026-10-21T03:15:04Z | `GET account-platform-gateway…/api/v1/modules` | 页面内 `fetch` 同一 URL | 响应为 `{code, result: {data, total: 20}, trace_id}`。20 个条目的字段都是 `id, module_id, name, alias, icon, scope, module, urls, routes, module_level, is_enabled`；**`urls` 的 key 都是 `development / stage / production`**（20/20）；`is_enabled` 都为 true；`module_level` 取值 1 和 2。`communication_platform`：`module=./SupportHubV2`，`scope=communication_platform`，stage URL 主机 `chat.nl-k8s-stage.srv.local`，以 `remoteEntry.js` 结尾。`xaa_widgets`：存在，`scope=xaaWidgets`，`module=./XAAWidgetsRemote`，以 `remoteEntry.js` 结尾。`funding`：存在，`scope=funding`，`module=./app`，主机 `developer-account-stage…`，文件为 `funding-developer-account.js`（**不是** `remoteEntry.js`）。`finance`、`support`：都存在，都使用 `scope=transactions_publisher_account`，主机 `publisher-account-client-transactions…`，文件为 `transactions_publisher_account.js`，`module` 分别为 `./finance`、`./support` | network | 只记了字段；没有记录 `routes` 的内容 |
+| A2a OBS-AUTH-009 | 2026-10-21T03:15:25Z | `{base}/53105/projects/0/edit` | 整页加载 | 文档 `redirectCount=1`，落地 **`/53105/`**（`/projects/0/edit` 全部丢失），文档状态 200；随后 SPA 跳到 `/53105/dashboard` | network（navigation timing）、URL | 看不到 Location 头。**与本批预期“302 到第一个项目并保留 `/edit`”不一致**，与 spec 0.3.2 中“整页刷新 `/{m}/projects/0` → `/{m}/`”一致 |
+| A2b OBS-AUTH-009 | 2026-10-21T03:15:40Z | `{base}/0/dashboard` | 整页加载 | `redirectCount=1`，落地 `/53105/dashboard`（保留 `/dashboard`），状态 200 | network、URL | 同上 |
+| A3 OBS-AUTH-009、S-22 | — | — | — | **未执行** | — | 需要无会话环境：Claude in Chrome 不能开无痕窗口；清 cookie 会结束用户当前会话；Claude 不能输入密码登录 |
+| A4 S-02 | — | — | — | **未执行** | — | 需要 DevTools 的 request blocking，Claude 没有这个能力。按要求不用其他方式替代 |
+| A5 S-04、OBS-BOOT-002 | — | — | — | **未执行** | — | 同 A4 |
+| A6 S-21 | 2026-10-21T03:16:00Z（客户端）、03:16:27Z / 03:16:36Z（整页） | `{base}/forbidden`、`{base}/not-found` | 客户端导航（`pushState` + `popstate`）和整页加载各一次 | 4 种情况都显示精简导航：只有 Xsolla logo、静态的 merchant 名称 “Web Games ACCT WEB-04”、“Go to homepage”；**没有** merchant 切换按钮、用户菜单（User / Change profile / Sign out）、语言切换、sidebar。对照组 dashboard 上这些元素都存在 | DOM | 只按按钮文字和 aria-label 判断，没有核对组件名 |
+| A7a OBS-ROUTE-003 | 2026-10-21T03:16:56Z | `{base}/53105//dashboard?x=1#h` | 整页加载 | `redirectCount=0`，SPA 把 URL 改为 `/53105/dashboard`，query 和 hash 都丢失 | URL | — |
+| A7b OBS-ROUTE-005 | 2026-10-21T03:17:06Z | `{base}/53105/support-hub/abc?x=1` | 整页加载 | → `/53105/communication-hub`，子路径和 query 都丢失 | URL | — |
+| A7c OBS-ROUTE-006 | 2026-10-21T03:17:24Z | `{base}/53105/analytics/products/login?period=7d#k` | 整页加载 | → `/53105/analytics/engagement?period=7d#k` | URL | — |
+| A7d OBS-ROUTE-006 | 2026-10-21T03:17:35Z | `{base}/53105/analytics/products/unknown?period=7d` | 整页加载 | → `/53105/analytics/payments`，query 丢失 | URL | — |
+| A8 OBS-I18N-002 / S-36（旁证） | 2026-10-21T03:18:19Z | `{base}/53105/dashboard?locale=de`（profile 语言为 `en`） | 整页加载 | 时间以文档开始加载为 0：1140 ms 时 URL 中还有 `?locale=de`，`<html lang=en>`；**2183 ms 时 `?locale` 已被删除**；`get_init_info` 在 2839–3618 ms；4599 ms 时 sidebar 首次渲染，文字为英语（“Get started”）；之后 30 s 内语言一直是 `en`。没有发出 `users/location` 或其他写 locale 的请求 | URL、DOM、network | 1140 ms 之前没有观测；UI 在 4.6 s 前没有可见文字，所以**看不到“先变成 de 再变回 en”的过程**，只能确认参数在用户数据加载前就被删除、最终显示 profile 语言。stage 的 SDK 是旧补丁版本，只算旁证 |

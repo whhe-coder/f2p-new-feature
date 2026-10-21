@@ -140,7 +140,7 @@ stage URL 列："gateway" 表示取模块列表中该 `module_id` 的 `urls.stag
 | ID | 场景 | 前置条件（账号/角色/数据） | 步骤 | 预期结果 | 优先级 | 追溯 | 自动化 |
 |---|---|---|---|---|---|---|---|
 | RT-MF-001 | 模块列表成功，remote URL 注册 | 任一有 session 的 owner | 1. DevTools → Network，勾选 Preserve log，过滤 `modules`。2. 打开 `{B}/{m}/dashboard`。3. Console 执行 `window.__modules.length`、`window.APP_ENV`、`window.ontologyModuleUrl`。 | 1. 只有 1 次 `GET …/api/v1/modules`，在任何业务请求之前。2. 响应 body 形状为 `{code, result: {data, total}, trace_id}`。3. `window.__modules` 是 `result.data` 数组，长度与 `result.data` 相同（stage 实测 `c1b5e37`：20 项）。4. `window.APP_ENV === 'stage'`。5. gateway 有 ontology 条目时，`window.ontologyModuleUrl` 以 `?<uuid>` 结尾。stage 实测（`c1b5e37`）2–5 都通过。 | P0 | OBS-BOOT-001；`init.tsx:13-28`；`initModules.ts:40` `[P3]` | `src/init.test.tsx`、`src/modules/initModules.test.ts` |
-| RT-MF-002 | 模块列表失败时白屏 | 同上；Requestly（或 Proxyman）可改响应状态码 | 1. 用 Requestly 把 `…/api/v1/modules` 改成 500；硬刷新。2. 改为 200 + body `{"code":500,"error":"x"}`；硬刷新。3. 用 DevTools → Network request blocking 屏蔽该 URL；硬刷新。 | 三种情况都是：`#root` 为空（白屏），Console 出现 `Uncaught (in promise) Error: Failed to initialize application: …`，不发 `/server/token` 之后的业务请求，没有重试按钮。 | P0 | OBS-BOOT-001；`init.tsx:29-31`；SDK `fetchModuleList` 抛错条件 `platform-apis index.mjs:1195-1204` | `src/init.test.tsx`（"wraps a module-list failure…"） |
+| RT-MF-002 | 模块列表失败时白屏 | 同上；Requestly（或 Proxyman）可改响应状态码 | 1. 用 Requestly 把 `…/api/v1/modules` 改成 500；硬刷新。2. 改为 200 + body `{"code":500,"error":"x"}`；硬刷新。3. 用 DevTools → Network request blocking 屏蔽该 URL；硬刷新。 | 三种情况都是：`#root` 为空（白屏），Console 出现 `Uncaught (in promise) Error: Failed to initialize application: …`，不发 `/server/token` 之后的业务请求，没有重试按钮。 | P0 | OBS-BOOT-001；`init.tsx:29-31`；SDK `fetchModuleList` 抛错条件 `platform-apis index.mjs:1195-1204`；stage 已证实（spec 0.3.7 §10.3 A5b：Playwright 匿名 headless 拦截 `/api/v1/modules`，abort 与 500 都白屏、不进入 bootstrap） [P10] | `src/init.test.tsx`（"wraps a module-list failure…"） |
 | RT-MF-003 | 模块列表慢：无超时 | 同上 | 1. DevTools → Network → 自定义 throttling：latency 60000 ms。2. 硬刷新 `{B}/{m}/dashboard`。 | 60 s 内页面保持空白，无 loader、无超时提示；响应返回后正常进入。 | P1 | §8.2 "module 列表请求阻塞首屏，没有超时"；axios 默认 `timeout=0` | — |
 | RT-MF-004 | 记录 stage 模块列表快照（U-05） | 同上 | 1. 打开任一页面。2. Network 中复制 `/api/v1/modules` 响应。3. 记录每个条目的 `module_id`、`scope`、`module`、`urls` 的 key。 | 记录：`urls` 是否含 `stage` key；`communication_platform` 的 `module` 是否为 `./SupportHubV2`；第 2 节中 gateway-only remote 是否都存在。若某条目只有 `dev`/`development` key，对应 MF1 remote 会显示 `Remote URL not found for scope`（见 RT-MF-047）。 | P1 | U-05；`RemoteModule.tsx:74-75` | — |
 | `[分支差异]` RT-MF-002 | 分支中模块列表失败 | — | 同 RT-MF-002 | 分支渲染 `InitializationError`，带重试按钮（`apps/web-games/src/init.tsx` catch 分支）。 | — | — | `apps/web-games/tests/initialization-failure.test.tsx` |
@@ -497,3 +497,9 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | 第 6 节、第 7 节 E-07、第 8 节 | 文档 | U-12 关闭；新增 U-14；E-07 标为已对齐；预期失败项补 RT-MF-025 第 1 步；覆盖对照补 S-35、U-12、U-14 |
 
 核对后未改：RT-SEC-101…104（§10.3 对 S-01 的结论与 P3 写入的 stage 结果一致）；RT-FRAME-040（host 本身仍不监听 `message`）；RT-MF-024（项目级 link 无 `fetchData`）。
+
+## P10 变更记录（spec 0.3.7）
+
+| 用例 | 变更 | 原因 |
+|---|---|---|
+| RT-MF-002 | 修改（只补证据） | OBS-BOOT-002 已由 A5b 在 stage 证实，预期不变 |

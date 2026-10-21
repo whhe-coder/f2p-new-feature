@@ -1,7 +1,7 @@
 # Reverse-Engineered Specification: web-games-account（Web Games 发行商账户 Host）
 
 > Status: draft（只读源码得出；未在运行时验证）
-> Document version: 0.3.6
+> Document version: 0.3.7
 > Last updated: 2026-10-21
 > Evidence snapshot:
 > - Host 代码：`web-games-account` `master` @ `772a320dc6010323957e3d536495f5a0868fada0`（commit time 2026-10-20T09:57:39Z，"Merge branch 'BIZA-524-add-v-1-contract-baselines-for-the-v-2-upgrade'"）。
@@ -23,6 +23,7 @@
 | 0.3.4 | 2026-10-21 | 合入 stage Batch A：执行 5 项，未执行 3 项。U-05 在 stage 上关闭；证实 S-21、OBS-ROUTE-003/005/006 与 BFF 的 `/0/…` 分支；按 `bff:merchant-sentinel.ts:186-247` 细化 OBS-AUTH-009 的哨兵分支（包括预算不足和请求超时）；§6 补充 finance 与 support 共用 container | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.5 | 2026-10-21 | 合入 stage Batch C 的 C1（切换语言，已恢复）：证实 S-23，证实 S-24 的前半段；新增 S-39（语言保存返回 200 但不持久化）、S-40（`<html lang>` 不更新）、U-16；补充 OBS-I18N-002 的保存接口 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.6 | 2026-10-21 | 合入 stage Batch A2（用页面内方法补做 A3、A4）：证实 OBS-AUTH-009 的无会话规则和有会话访问 `/login` 的规则、S-22 的 BFF 一半、S-02；A5a、A5b 未执行 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
+| 0.3.7 | 2026-10-21 | 合入 A5b（Claude Code CLI，Playwright 匿名 headless 拦截 `/api/v1/modules`）：证实 OBS-BOOT-002，abort 和 500 两种失败都白屏、不进入 bootstrap；§10.3 新增 A5b 表，Batch A2 表中该行只保留 S-04 | master @ 772a320；stage `c1b5e37` 观察（`init.tsx`、`index.html` 两版相同） |
 
 ## 0. 阅读约定
 
@@ -1100,7 +1101,15 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 |---|---|---|---|
 | OBS-AUTH-009、S-22 | 页面内 `fetch`，带 `Accept: text/html`。用 `credentials:'omit'` 模拟无会话，`include` 作对照。只有 HTML 请求才会触发 BFF 守卫（`bff:bff-routes.ts:253,267`） | 无会话访问 `{base}` 和 `{base}/{m}/dashboard?tab=x`：被重定向，最终都是 `{base}/login`（200，返回 shell）。无会话访问 `/forbidden`、`/not-found`：没有重定向，200，返回 shell。有会话访问 `/login`：重定向到 `{base}`（当时没有保存的 return URL） | 无会话规则和有会话访问 `/login` 的规则证实；S-22 的 BFF 一半证实，SPA 之后那一次跳转在这种方法下看不到。BFF 版本相同，结论直接适用于 772a320。看不到 Set-Cookie，所以 `pa-original-url` 是否写入、登录后能否回到原地址，都没有验证 |
 | S-02 | 先确认 `window.funding` 未定义，再在页面内拦截 `appendChild` / `insertBefore`，把 funding 入口脚本换成无效地址，然后客户端导航到 `/projects/{p}/funding` | 3 s 到约 60 s 之间，注入次数始终是 1；页面上有 1 处 `Failed to load: …funding-developer-account.js`，另有 1 个元素一直在转圈。离开再回来，注入次数变为 2，再次失败，仍是 1 处报错加 1 个转圈 | 证实 S-02：第二个调用者不再注入、一直转圈，之后才挂载的调用者会重试。报错和转圈分别对应 nav 区和 App 区，这是推断 [I]，没有核对。离开后定时器是否泄漏，无法观察。`loadModule.ts` 与 `Funding` 在两个 commit 之间没有变化 |
-| S-04、OBS-BOOT-002 | 未执行 | A5a 需要切换到其他 merchant，会改写 merchant 相关的 cookie，超出只读范围；A5b 需要 DevTools 的请求屏蔽 | 仍只有源码证据；A5b 需人工执行 |
+| S-04 | 未执行 | A5a 需要切换到其他 merchant，会改写 merchant 相关的 cookie，超出只读范围 | 仍只有源码证据。OBS-BOOT-002（A5b）已另行执行，见下方 A5b 表 |
+
+**A5b（Claude Code CLI 执行；Playwright Chromium，匿名、headless、只读；入口 `/for/web-games/account/login`）**
+
+`src/init.tsx` 与 `public/index.html` 在 `c1b5e37` 与 772a320 之间没有变化，所以结论直接适用于 772a320。
+
+| 关联 ID | 方法 | 观察结论（有边界） | 对本文的影响 |
+|---|---|---|---|
+| OBS-BOOT-002 | 每个用例用新的匿名 context，以 `page.route` 拦截 `GET …/api/v1/modules`：（1）`abort('failed')`；（2）`fulfill({status: 500})`；（3）对照，不拦截。整页加载后等待 20 s（对照 12 s），检查 pageerror、`#root` 子节点、密码框和 `/server/token` 请求 | 两种失败都抛出 `Failed to initialize application: AxiosError: …`；`#root` 为空（0 个子节点，没有文字）；没有登录表单；没有 `/server/token` 请求，即没有进入 bootstrap；等待期内 modules 请求只出现 1 次，没有重试。对照用例渲染登录表单，modules 返回 200 | 证实 OBS-BOOT-002：失败即白屏，没有错误 UI，没有重试。边界：只覆盖登录页入口和匿名会话；是请求拦截，不是真实的网络或后端故障，没有覆盖超时和慢响应；只在 stage 上运行 |
 
 **Batch C · C1（用户在执行会话中直接确认；admin 账号；会改 profile 语言，已恢复为 `en`）**
 

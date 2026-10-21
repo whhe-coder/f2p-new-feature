@@ -211,3 +211,43 @@
 | A4 S-02 | 2026-10-21T04:00:17Z 起 | 整页加载 `/53105/dashboard` 后，确认 `typeof window.funding === 'undefined'`、没有加载过 `funding-developer-account.js`；hook `Node.prototype.appendChild`/`insertBefore`，把 `funding-developer-account.js` 的 `<script>` 改到 `https://invalid.invalid/blocked.js`；从 sidebar（Other tools → Funding，`/projects/317869/funding`）客户端导航进入 | 客户端导航（同一文档） | 3 s、15 s、35 s、约 60 s 时：`__blocked.length` 都是 **1**；页面上 **1 处** “Failed to load: …funding-developer-account.js”；同时有 **1 个持续旋转**的元素（styled-components，`animation-name: fvtopB`）。离开到 dashboard 再从 sidebar 回到 funding：`__blocked.length` 变为 **2**（重新尝试注入并再次失败），页面上又是 1 处报错和 1 个持续转圈。**符合 S-02**：首次加载失败时，第二个调用者不再注入脚本、一直转圈；失败后才挂载的调用者会重试 | DOM、JS hook | 第一次点击 sidebar 链接没有生效（链接所在分组折叠），改为对同一个 `<a>` 调用 `click()`，仍是 react-router 客户端导航；没有确认报错和转圈分别位于 nav 区和 App 区；离开页面后的持续轮询基于定时器，不产生网络请求，**无法观察** |
 | A5a S-04 | — | — | — | **未执行** | — | 需要以 admin 身份切换到其他 merchant 再进入财务页，会改写 merchant 相关 cookie，超出本次“在 53105 上只读验证”的范围；该项本身是可选项 |
 | A5b | — | — | — | 未由 Claude 执行；已由另一会话用 Playwright 匿名 headless 完成，结论见 spec 0.3.7 §10.3（OBS-BOOT-002 证实：abort 与 500 都白屏） | — | — |
+
+## 7. A5b（Claude Code CLI，Playwright 拦截）
+
+> 执行者：Claude Code CLI，用户明确要求执行。匿名、headless、只读：不登录，不写 stage 数据，不改仓库代码。
+> 脚本：`scratchpad/a5b/a5b-check.cjs`（Playwright Chromium，`ignoreHTTPSErrors: true`）。每个用例使用新的 browser context，用 `page.route(/\/api\/v1\/modules(\?|$)/, …)` 拦截。整页加载后等待：拦截用例 20 s，对照用例 12 s。
+
+- **时间**：2026-10-21T12:15:04+08:00 至 2026-10-21T12:16:17+08:00（UTC 04:15:04Z–04:16:17Z）
+- **base URL**：`https://accounts-sdk-skeleton.nl-k8s-stage.srv.local`，入口 `/for/web-games/account/login`
+- **build**：`stage-web-games-20261005-03`（commit `c1b5e37`）。来源：`main.*.js` 的 CDN 路径 `/business-account-stage/stage-web-games-20261005-03/for/web-games/main.e6b8c0da0fd32ee6e09b.js`，三个用例相同
+- **会话**：匿名（新 context，无 cookie）
+- **适用性**：`src/init.tsx` 与 `public/index.html` 在 `c1b5e37` 与 `772a320` 之间没有改动，所以结论直接适用于 772a320
+
+**原始输出（每个用例一行 JSON）**
+
+```json
+{"case":"abort","startedAt":"2026-10-21T04:15:05.366Z","finishedAt":"2026-10-21T04:15:35.732Z","docStatus":200,"finalUrl":"{BASE}/for/web-games/account/login","build":"stage-web-games-20261005-03","mainScript":"/business-account-stage/stage-web-games-20261005-03/for/web-games/main.e6b8c0da0fd32ee6e09b.js","moduleRouteHits":1,"modulesResponseStatus":null,"pageErrors":["Failed to initialize application: AxiosError: Network Error"],"consoleErrorCount":1,"consoleErrorsSample":["Failed to load resource: net::ERR_FAILED"],"serverTokenRequests":0,"root":{"children":0,"textLen":0},"hasPasswordInput":false}
+{"case":"http500","startedAt":"2026-10-21T04:15:35.800Z","finishedAt":"2026-10-21T04:16:01.062Z","docStatus":200,"finalUrl":"{BASE}/for/web-games/account/login","build":"stage-web-games-20261005-03","mainScript":"/business-account-stage/stage-web-games-20261005-03/for/web-games/main.e6b8c0da0fd32ee6e09b.js","moduleRouteHits":1,"modulesResponseStatus":500,"pageErrors":["Failed to initialize application: AxiosError: Request failed with status code 500"],"consoleErrorCount":1,"consoleErrorsSample":["Failed to load resource: the server responded with a status of 500 (Internal Server Error)"],"serverTokenRequests":0,"root":{"children":0,"textLen":0},"hasPasswordInput":false}
+{"case":"control","startedAt":"2026-10-21T04:16:01.130Z","finishedAt":"2026-10-21T04:16:17.113Z","docStatus":200,"finalUrl":"{BASE}/for/web-games/account/login","build":"stage-web-games-20261005-03","mainScript":"/business-account-stage/stage-web-games-20261005-03/for/web-games/main.e6b8c0da0fd32ee6e09b.js","moduleRouteHits":0,"modulesResponseStatus":200,"pageErrors":[],"consoleErrorCount":4,"consoleErrorsSample":["Failed to load resource: the server responded with a status of 401 ()","Failed to load resource: the server responded with a status of 401 ()","Failed to load resource: the server responded with a status of 429 ()"],"serverTokenRequests":2,"root":{"children":2,"textLen":342},"hasPasswordInput":true}
+```
+
+**判定**
+
+| case | 拦截方式 | 预期 | 实际 | 判定 |
+|---|---|---|---|---|
+| abort | `route.abort('failed')` | `moduleRouteHits ≥ 1`；pageErrors 含 `Failed to initialize application`；`root.children == 0`；`serverTokenRequests == 0`；`hasPasswordInput == false` | hits 1；pageError `Failed to initialize application: AxiosError: Network Error`；children 0，textLen 0；serverToken 0；无密码框 | **符合** |
+| http500 | `route.fulfill({status: 500})` | 同 abort | hits 1；modules 响应 500；pageError `Failed to initialize application: AxiosError: Request failed with status code 500`；children 0，textLen 0；serverToken 0；无密码框 | **符合** |
+| control | 不拦截 | `root.children > 0`；`hasPasswordInput == true`；`modulesResponseStatus == 200` | children 2，textLen 342；有密码框；modules 200；没有 pageError | **符合**（环境正常） |
+
+**结论**
+
+- **OBS-BOOT-002 已证实**：`/api/v1/modules` 网络失败或返回 500 时，都抛出 `Failed to initialize application: …`，`#root` 为空（0 个子节点，没有文字），没有登录表单，也没有发出 `/server/token` 请求，即没有进入 bootstrap。页面是纯白屏，没有错误 UI。
+- 两种失败的错误消息只有 Axios 部分不同（`Network Error` 与 `Request failed with status code 500`）。
+- 拦截用例的 20 s 等待内，modules 请求只被命中 1 次，没有观察到重试。
+- **附带观察**：对照用例有 4 条 console error（样本中 2 条 401、1 条 429），是匿名会话下的正常加载，与本项无关，没有进一步分析。
+
+**局限**
+
+- 只覆盖登录页入口（`/for/web-games/account/login`），没有覆盖其他入口路由和有会话的情况。
+- 用 Playwright 拦截模拟故障，不是真实的网络故障或后端故障；超时、慢响应、响应体格式错误等情况没有覆盖。
+- 只在 stage 上运行（build `stage-web-games-20261005-03`），没有在 prod 上运行。

@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | Track | T4 Remote 加载·iframe·本地 endpoint |
-| 基于 spec 版本 | 0.3.1（`web-games-account_reverse_spec.md`）；P4 定向更新，变更见文末"P4 变更记录"（P3 基于 0.3.0） |
+| 基于 spec 版本 | 0.3.2（`web-games-account_reverse_spec.md`）；P5 定向更新，变更见文末"P5 变更记录"（P4 基于 0.3.1，P3 基于 0.3.0） |
 | 代码基线 | `master@772a320`（行号以此为准） |
 | 对照分支 | `WASP-2524-migrate-tests-to-apps@540ec56`（差异标 `[分支差异]`） |
 | 生成日期 | 2026-10-21 |
@@ -74,9 +74,9 @@ stage URL 列："gateway" 表示取模块列表中该 `module_id` 的 `urls.stag
 | 10 | `support` / gateway / gateway `module` | MF1 | gateway | `/{m}/support/*`（`TransactionSearchSection`；`/support` 默认跳 `/support/transactions`） | `locale, merchant_id:Number, merchantDetails, user, route, token, privilegesList, basename` | `layouts/Support/remote.tsx`；`routes.tsx:89-100` |
 | 11 | `subscriptions` / `subscriptions_publisher_account` / `./support` | MF1 | gateway | `/{m}/support/subscriptions`（另需 `RecurrentSubscriptionGetAll`） | `token, locale, privileges, merchant_id:Number, project_id:null, basename` | `layouts/Support/subscriptions.tsx` |
 | 12 | `communication_platform_v2/SupportHubV2`，回退 MF1 `communication_platform` / `pa_communication_platform` / gateway `module` | **MF2** + MF1 回退 | gateway `remoteEntry.js` → 派生 `…/v2/mf-manifest.json` | `/{m}/communication-hub`（`/{m}/support-hub` 重定向到此） | `token, isChatReady=true, merchantName, userEmail, userId, userAvatar, locale, merchantId(route), wikiLink, merchantRole, aiQuestion(location.state), accountId=siteId`；MF2 不传 `basename`，MF1 回退时 RemoteModule 加 `basename` | `layouts/CommunicationHub/CommunicationHub.tsx`；`mf/index.ts`；`mf/runtime/*` |
-| 13 | `xsolla-gold` / gateway / gateway `module` | MF1 | gateway | `/{m}/projects/{p}/gold`（merchant 级 `/{m}/gold` 因 D1 不可达） | `loginToken, merchantId, projectId, rootUrl（小写 l）, basename` | `layouts/xsolla-gold/index.tsx` |
+| 13 | `xsolla-gold` / gateway / gateway `module` | MF1 | gateway | `/{m}/projects/{p}/gold`（merchant 级 `/{m}/gold` 因 D1 不可达；`/{m}/'gold'` 必崩，S-35 `[P5]`） | `loginToken, merchantId, projectId, rootUrl（小写 l）, basename` | `layouts/xsolla-gold/index.tsx` |
 | 14 | `xsolla-link` / gateway / gateway `module` | MF1 | gateway | `/{m}/projects/{p}/link`；**非 admin 在 render 中 `history.push('/forbidden')`** | `token, locale, merchantId, projectId, rootURL, basename` | `layouts/xsolla-link/index.tsx` |
-| 15 | `metaframe` / gateway / gateway `module` | MF1 | gateway | `/{m}/metaframe`（`ProjectSettings`）、`/{m}/projects/{p}/metaframe` | `token, locale, merchantId, projectId（merchant 级为 NaN）, rootURL, basename` | `layouts/metaframe/index.tsx` |
+| 15 | `metaframe` / gateway / gateway `module` | MF1 | gateway | `/{m}/metaframe`（`ProjectSettings`；**当前必崩**，S-35 `[P5]`）、`/{m}/projects/{p}/metaframe` | `token, locale, merchantId, projectId（merchant 级为 NaN）, rootURL, basename` | `layouts/metaframe/index.tsx` |
 | 16 | `site-builder` / gateway / gateway `module` | MF1 | gateway | `/{m}/projects/{p}/site-builder` | `locale, token, merchantId, projectId, rootURL, basename`；key=`m:p`；在 effect 中写 cookie `sb-pa-*`（`sameSite=lax`、Path `/`、10 天；Domain 按 hostname 决定：含 `.xsolla.com` → `.xsolla.com`，含 `xsolla.com` → `xsolla.com`，含 `.srv.local` → `.srv.local`，否则 host-only，见 `getCookieParams`）`[P3]` | `layouts/SiteBuilder/index.tsx`；`core/utils/cookie.ts:101-118` |
 | 17 | `network` / gateway / gateway `module` | MF1 | gateway | `/{m}/projects/{p}/network`（非 `ROLE_VIEWER`） | **只有 `token` + `basename`**；merchant/project/locale 通过 cookie `network-pa-*`（host-only，无 secure） | `layouts/network/index.tsx` |
 | 18 | `subscriptions` / `subscriptions_publisher_account` / gateway `module` | MF1 | gateway | `/{m}/projects/{p}/subscriptions`（`ProjectSettings`，非 `gnation`） | `locale, token, privileges, merchantId, projectId, merchant_id, project_id, functionHOP, isSeparatedDevMode=false（stage）, basename` | `layouts/subscriptions/index.tsx` |
@@ -168,9 +168,9 @@ stage URL 列："gateway" 表示取模块列表中该 `module_id` 的 `urls.stag
 | RT-MF-019 | webhooks 各页签 remote | `ProjectSettings`；项目开启 webhooks | 1. 打开 `/{m}/projects/{p}/edit/webhooks`。2. 依次切换 store、virtual-items、pay2play、subscriptions、payments、dispute 页签，以及高级设置区域。3. 打开 `/edit/event-api`。 | 1. store/virtual-items/pay2play → storefront container，expose 分别为 `./webhooks-capi`、`./webhooks-lapi-virtual-items`、`./webhooks-lapi-pay2play`；未知页签 id 回退 `./webhooks-capi`。2. subscriptions → `./webhooks`。3. payments/dispute → payments container 的 `./webhooksPaymentsTab`/`./webhooksDisputeTab`，先请求一次 `currency/list`。4. 高级设置与 event-api → `./advancedSettings`。5. `webhookSecrets` prop 始终为空数组（见 RT-API-030）。 | P1 | `webhookRemotes.tsx:173-195`；`project-settings/index.tsx` | `src/layouts/webhooks-store/webhookRemotes.test.tsx`、`AdvancedSettingsRemote.test.tsx` |
 | RT-MF-020 | support 加载 | 有 `transaction_search_section` | 通用步骤；`/{m}/support` | 1. URL 变为 `/{m}/support/transactions`。2. props `merchant_id` 为 number，来自 store。 | P1 | `routes.tsx:89-100`；`layouts/Support/remote.tsx` | — |
 | RT-MF-021 | support subscriptions（subscriptions `./support`） | 另有 `recurrent_subscription_get_all` | 通用步骤；`/{m}/support/subscriptions` | `exposedModule='./support'`，container `subscriptions_publisher_account`；props `project_id=null`。 | P1 | `layouts/Support/subscriptions.tsx` | — |
-| RT-MF-023 | xsolla-gold（项目级） | owner；项目可见 gold | 通用步骤；`/{m}/projects/{p}/gold` | token prop 名为 `loginToken`，`rootUrl` 小写 l；无 `locale`。merchant 级 `/{m}/gold` → `/not-found`（D1，T2 覆盖）。 | P2 | `layouts/xsolla-gold/index.tsx`；D1 | `scenarios.ts` D1 |
+| RT-MF-023 | xsolla-gold（项目级） | owner；项目可见 gold | 通用步骤；`/{m}/projects/{p}/gold` | token prop 名为 `loginToken`，`rootUrl` 小写 l；无 `locale`。项目级路由没有 `fetchData`，不受 S-35 影响。merchant 级 `/{m}/gold` → `/not-found`（D1）；`/{m}/'gold'` 当前必崩（S-35）。这两条由 T2 RT-ROUTE-026、RT-ROUTE-028 覆盖。 | P2 | `layouts/xsolla-gold/index.tsx`；D1、S-35；`routes/inside/projects.ts:219-221` `[P5]` | `scenarios.ts` D1 |
 | RT-MF-024 | xsolla-link：admin 与非 admin | A：admin；B：非 admin owner | 两个账号分别打开 `/{m}/projects/{p}/link` | A：remote 加载。B：URL 变为 `/forbidden`，不请求 remoteEntry。 | P1 | `layouts/xsolla-link/index.tsx` | — |
-| RT-MF-025 | metaframe（merchant 级与项目级） | `ProjectSettings` | 1. 打开 `/{m}/metaframe`。2. 打开 `/{m}/projects/{p}/metaframe`。 | 两处都加载同一 container。merchant 级 props 中 `projectId` 为 `NaN`（`Number(undefined)`）；记录 remote 是否能处理，**待确认**。 | P2 | `layouts/metaframe/index.tsx`；`routes.tsx:104` | — |
+| RT-MF-025 | metaframe（merchant 级与项目级） | `ProjectSettings` | 1. 打开 `/{m}/metaframe`。2. 整页刷新恢复后，打开 `/{m}/projects/{p}/metaframe`。 | 1. **当前必崩（S-35，预期失败项，stage 实测）**：页面显示 “Something went wrong”（Redux error #7），不出现 metaframe 内容；remoteEntry 是否已请求，记录实际结果。原因：该路由的 `fetchData` 是普通 async API 函数 `fetchProjectsLite`，`Root.fetchRouteData` 把它返回的 Promise 当 action dispatch。崩溃后 SPA 内导航不恢复，必须整页刷新（U-14，T1 RT-ERR-008）。**修复后**：加载 metaframe container；merchant 级 props 中 `projectId` 为 `NaN`（`Number(undefined)`），记录 remote 能否处理（**待确认**）。2. 项目级路由没有 `fetchData`，不受 S-35 影响，正常加载同一 container。 | P2 | S-35、§10.3；`layouts/metaframe/index.tsx`；`routes.tsx:104-107`；`routes/inside/projects.ts:207-209`；`layouts/Root.tsx:105-113` `[P5]` | —（`routes.test.tsx:119` 把 `fetchProjectsLite` mock 成 action creator，掩盖了 S-35） |
 | RT-MF-026 | site-builder 与 cookie | owner | 1. 通用步骤；`/{m}/projects/{p}/site-builder`。2. Application → Cookies。3. 切换到另一个项目的 site-builder。 | 1. cookie `sb-pa-locale`、`sb-pa-merchant-id`、`sb-pa-project-id`：Path=`/`，SameSite=Lax，10 天。Domain 按当前 `location.hostname` 决定（`getCookieParams`，按顺序匹配）：含 `.xsolla.com` → `.xsolla.com`；否则含 `xsolla.com` → `xsolla.com`；否则含 `.srv.local` → `.srv.local`；否则不设 Domain（host-only）。记录 stage hostname 与实际 Domain，二者必须符合此规则。2. 切换项目时 remote 以新 key 重挂载（再次进入 loading）。 | P2 | `layouts/SiteBuilder/index.tsx`；`core/utils/cookie.ts:101-118`；勘误 E-11（PARTIAL 修正） `[P3]` | — |
 | RT-MF-027 | network：只传 token，其余走 cookie | owner；B：viewer | 1. owner 打开 `/{m}/projects/{p}/network`。2. 检查 props 与 cookie。3. viewer 打开同一路由。 | 1. props 只有 `token`、`basename`。2. cookie `network-pa-locale/merchant-id/project-id`：host-only，无 Secure。3. viewer → 被路由拒绝（T2）。 | P2 | `layouts/network/index.tsx`；`routes/inside/network.ts` | — |
 | RT-MF-028 | subscriptions | `ProjectSettings`，非 gnation | 通用步骤；`/{m}/projects/{p}/subscriptions` | props 同时含 `merchantId/projectId`（字符串）与 `merchant_id/project_id`（number），`isSeparatedDevMode=false`。remote 自身收到 401 时按其逻辑跳转（不由 host 处理）。 | P1 | `layouts/subscriptions/index.tsx` | — |
@@ -271,7 +271,7 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | RT-FRAME-007 | 步骤不存在或无 url | owner | 用不存在的 `upsell-step-id`；再 override 步骤去掉 `url` | 都保持 loader。 | P2 | `index.tsx:36-41` | `index.test.tsx`（两条） |
 | RT-FRAME-008 | `frame_path` 被忽略 | owner | 把 `documentation` 换成 `anything` 与 `int-feedback` | 行为与 RT-FRAME-001 相同；`ROUTES_OF_AVAILABLE_DOMAINS` 的 value（`documentation` 等）不参与匹配。 | P2 | `index.tsx:17-49` | — |
 | RT-FRAME-009 | 同页修改 query 重新加载 | owner；两张卡 | 1. 打开卡片 1 的 frame URL。2. 在地址栏把 `upsell-card-id` 改为卡片 2 并回车（整页加载）。 | 请求卡片 2 并嵌入其步骤。说明：同页 query 变化时丢弃旧响应的分支只能在单测中验证，stage 手工无法稳定触发。 | P2 | `index.tsx:46-49` | `index.test.tsx`（"ignores a stale response…"） |
-| RT-FRAME-010 | **S-20 / AC-13 定向（预期失败项）**：Upsell 弹窗跳转丢失 basename | owner/developer；merchant 数 >1 或项目数 >1；`utm_campaign=X` 能查到 1 张 `integrationGuideExist=true` 的卡，且当前步骤 url 含 `developers.xsolla.com` | 1. 打开 `/{m}/dashboard?utm_campaign=X`。2. 弹窗中点一个项目。3. 记录最终地址栏 URL 与页面内容。4. 换用 `integrationGuideExist=false` 的卡（或 assign 返回空）重复 1–3。 | **当前（缺陷，预期失败项）**：`window.location.replace('/{m}/frame/documentation?upsell-card-id=…&upsell-step-id=…')`，路径没有 `/for/web-games/account` 前缀，浏览器离开本 app，落到 `https://<stage-host>/{m}/frame/…`。第 4 步跳 `/{m}`，同样没有前缀。根级 `/{m}/…` 返回什么是 U-12，第 3 步记录结果并回填 U-12。**期望（AC-13）**：跳到 `{B}/{m}/frame/documentation?…`（第 4 步跳 `{B}/{m}`）。 | P1 | S-20；AC-13；OBS-DASH-005 第 4 步；U-12；`core/utils/upsell.ts:19-45`；`UpsellModal/index.tsx:71-90`；`core/utils/url.ts:41-44` `[P3]` | — （单测断言无 basename 的 `'/42'`，固定了缺陷） |
+| RT-FRAME-010 | **S-20 / AC-13 定向（预期失败项）**：Upsell 弹窗跳转丢失 basename | owner/developer；merchant 数 >1 或项目数 >1；`utm_campaign=X` 能查到 1 张 `integrationGuideExist=true` 的卡，且当前步骤 url 含 `developers.xsolla.com` | 1. 打开 `/{m}/dashboard?utm_campaign=X`。2. 弹窗中点一个项目。3. 记录最终地址栏 URL 与页面内容。4. 换用 `integrationGuideExist=false` 的卡（或 assign 返回空）重复 1–3。 | **当前（缺陷，预期失败项）**：`window.location.replace('/{m}/frame/documentation?upsell-card-id=…&upsell-step-id=…')`，路径没有 `/for/web-games/account` 前缀，浏览器离开本 app，落到 `https://<stage-host>/{m}/frame/…`。第 4 步跳 `/{m}`，同样没有前缀。`[P5]` U-12 已关闭（spec 0.3.2 §10.3）：缺 basename 的地址由 BFF（Express）直接返回 404 “Cannot GET /{m}/…”，第 3 步应看到该 404 页。**期望（AC-13）**：跳到 `{B}/{m}/frame/documentation?…`（第 4 步跳 `{B}/{m}`）。 | P1 | S-20；AC-13；OBS-DASH-005 第 4 步；U-12、§10.3；`core/utils/upsell.ts:19-45`；`UpsellModal/index.tsx:71-90`；`core/utils/url.ts:41-44` `[P3]` `[P5]` | — （单测断言无 basename 的 `'/42'`，固定了缺陷） |
 
 #### 4.2.2 Marketplace 与 Ontology
 
@@ -291,8 +291,8 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | ID | 场景 | 前置条件（账号/角色/数据） | 步骤 | 预期结果 | 优先级 | 追溯 | 自动化 |
 |---|---|---|---|---|---|---|---|
 | RT-FRAME-040 | host 自身不监听 `message` | owner | 在 IntegrationFrame、marketplace、ontology 页面的 Console 执行 `getEventListeners(window).message` | 返回 `undefined` 或只来自第三方脚本（LiveChat、浏览器扩展）；没有来自 host bundle 的监听。向页面 `postMessage` 任意数据无可见效果。 | P2 | OBS-FRAME-003 | — |
-| RT-FRAME-041 | Tax interview 的 `exitConfirmed` 协议与 origin 校验 | merchant 的 tax interview 状态为 `incomplete`，页面显示 iframe | 1. 打开 `/{m}/tax-interview`。2. 在顶层 Console 执行 `window.postMessage('exitConfirmed','*')`。3. Console 上下文切换到 tax iframe，执行 `parent.postMessage('exitConfirmed','*')`。4. 再在 iframe 上下文发送 `parent.postMessage('other','*')`。 | 2：无效果（origin 是 host，不等于 iframe URL 的 origin）。3：iframe 重新加载（先显示 spinner，`iframeKey+1`），发送一次 exit 点击埋点。4：无效果。 | P2 | `platform-pages@3.25.2 dist/index.mjs:94-111` | — |
-| RT-FRAME-042 | Documents（`DocumentCenterDocuments`）上传消息：`/documents` 与 `/finance/boxnet` 两个入口 | 有 `get_merchant_boxnet_url` | 1. 打开 `/{m}/finance/boxnet`。2. 在 iframe 上下文执行 `parent.postMessage({event:'uploadSuccess',file_id:'1'},'*')`、`parent.postMessage('uploadError','*')`。3. 在顶层上下文发送同样消息。4. 打开 `/{m}/documents`，重复 2–3。 | 2：只发送埋点（Network 中出现对应 analytics hit），UI 不变，iframe 不重新加载。3：被 origin 校验忽略，无埋点。4：与 `/finance/boxnet` 相同（同一 SDK 页面）。 | P2 | OBS-FRAME-003（新增 `/{m}/documents` 路由）；`platform-pages@3.25.2 dist/index.mjs:7854-7920`；`routes.tsx:134-138` `[P3]` | — |
+| RT-FRAME-041 | Tax interview 的 `exitConfirmed` 协议与 origin 校验 | merchant 的 tax interview 状态为 `incomplete`，页面显示 iframe | 1. 打开 `/{m}/tax-interview`。2. 在顶层 Console 执行 `window.postMessage('exitConfirmed','*')`。3. Console 上下文切换到 tax iframe，执行 `parent.postMessage('exitConfirmed','*')`。4. 再在 iframe 上下文发送 `parent.postMessage('other','*')`。 | 2：无效果（origin 是 host，不等于 iframe URL 的 origin）。3：iframe 重新加载（先显示 spinner，`iframeKey+1`），发送一次 exit 点击埋点。4：无效果。 | P2 | OBS-FRAME-003（0.3.2：只有 TaxInterview 的 `exitConfirmed` 会重载 iframe，即 `setIframeKey`）；`platform-pages@3.25.2 dist/index.mjs:94-111` `[P5]` | — |
+| RT-FRAME-042 | Documents（`DocumentCenterDocuments`）上传消息：`/documents` 与 `/finance/boxnet` 两个入口 | 有 `get_merchant_boxnet_url` | 1. 打开 `/{m}/finance/boxnet`。2. 在 iframe 上下文执行 `parent.postMessage({event:'uploadSuccess',file_id:'1'},'*')`、`parent.postMessage('uploadError','*')`。3. 在顶层上下文发送同样消息。4. 打开 `/{m}/documents`，重复 2–3。 | 2：只发送埋点（Network 中出现对应 analytics hit），UI 不变，iframe 不重新加载（与 RT-FRAME-041 的 `exitConfirmed` 不同）。3：被 origin 校验忽略，无埋点。4：与 `/finance/boxnet` 相同（同一 SDK 页面）。 | P2 | OBS-FRAME-003（新增 `/{m}/documents` 路由；0.3.2：上传消息只上报 analytics）；`platform-pages@3.25.2 dist/index.mjs:7875-7912`；`routes.tsx:134-138` `[P3]` `[P5]` | — |
 
 ### 4.3 API：本地 endpoint
 
@@ -326,7 +326,7 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | RT-SEC-103 | S-01：登出后 cookie 残留 | 同上 | 1. 打开 storefront 后，用 UI 登出（BFF `/logout`）。2. 查看 Cookies。3. 关闭再打开浏览器（会话 cookie 测试）。 | **当前（推断）**：`pa-v4-token` 被 BFF 清除，但 `gc-pa-v4-token` **仍保留旧 JWT**（src 中没有删除它的代码）；直到浏览器会话结束才消失。修复后：登出时清除。 | P1 | S-01；`core/utils/cookie.ts:127-142` 不含该 cookie；grep 无 `Cookies.remove('gc-pa-v4-token')` | — |
 | RT-SEC-104 | S-01：token 为 null 时写入 `"null"` | 需要 storefront 渲染时 token 为空的状态（stage 上被 guard 拦截，**待确认**能否构造） | 若能构造：打开 storefront 后看 cookie 值 | **当前**：值为字符串 `null`。`[分支差异]` 分支写入空字符串（`packages/@platform-templates/layouts/src/remotes/storefront/index.tsx:21`）。 | P2 | S-01 | 分支：`storefront-cookies.test.tsx` |
 | RT-SEC-105 | S-03 的安全影响（钓鱼 iframe） | 同 RT-FRAME-002 | 执行 RT-FRAME-002 b) | 记录：iframe 在 host 外壳内加载攻击者主机内容，无 sandbox，可执行脚本和顶层导航（`top.location`）。修复后不渲染。 | P1 | S-03；§8.1 iframe | — |
-| RT-SEC-106 | Upsell 开放跳转与站内跳转丢失 basename | RT-API-020 的数据 | override `salescards/{id}` 响应，把当前步骤 `url` 依次改为以下值，每次在弹窗中点项目：a) `https://example.com/x`（不含 `developers.xsolla.com`）；b) 相对路径 `/{m}/projects`；c) `https://example.com/x?a=1`。 | a) 浏览器跳到 `https://example.com/x?upsell-card-id=<id>`（`location.replace`），无确认，记录为开放跳转面。b) **预期失败项（S-20 / AC-13 同类）**：当前跳到 `https://<stage-host>/{m}/projects?upsell-card-id=<id>`，没有 `/for/web-games/account` 前缀，离开本 app；期望跳到 `{B}/{m}/projects?…`。c) 当前 URL 出现两个 `?`：`…/x?a=1?upsell-card-id=<id>`（S-30）。 | P1 | §8.1 跳转；S-20；AC-13；S-30；OBS-DASH-005 第 4 步；`core/utils/upsell.ts:24-29` `[P3]` | — |
+| RT-SEC-106 | Upsell 开放跳转与站内跳转丢失 basename | RT-API-020 的数据 | override `salescards/{id}` 响应，把当前步骤 `url` 依次改为以下值，每次在弹窗中点项目：a) `https://example.com/x`（不含 `developers.xsolla.com`）；b) 相对路径 `/{m}/projects`；c) `https://example.com/x?a=1`。 | a) 浏览器跳到 `https://example.com/x?upsell-card-id=<id>`（`location.replace`），无确认，记录为开放跳转面。b) **预期失败项（S-20 / AC-13 同类）**：当前跳到 `https://<stage-host>/{m}/projects?upsell-card-id=<id>`，没有 `/for/web-games/account` 前缀，离开本 app，落到 BFF 404 “Cannot GET” 页（§10.3）；期望跳到 `{B}/{m}/projects?…`。c) 当前 URL 出现两个 `?`：`…/x?a=1?upsell-card-id=<id>`（S-30）。 | P1 | §8.1 跳转；S-20；AC-13；S-30；U-12、§10.3；OBS-DASH-005 第 4 步；`core/utils/upsell.ts:24-29` `[P3]` `[P5]` | — |
 | RT-SEC-107 | 所有 iframe 无 sandbox | owner | 依次打开 IntegrationFrame、marketplace、ontology、tax-interview、finance/boxnet、documents，在 Elements 检查 `<iframe>` | 都没有 `sandbox`、`allow` 属性（当前）。记录作为基线，修复时需逐个评估。 | P2 | OBS-FRAME-003；§8.1 iframe `[P3]` | — |
 | RT-SEC-108 | remote 拿到的 token 与 gateway 一致 | owner | 对任一 remote（如 payments）用 React DevTools 读 `token` prop，与 gateway 请求的 Bearer 比较 | 两者相同；xaa 用 `tokenJWT`、gold 用 `loginToken`。记录所有接收 token 的 remote（第 2 节）。 | P2 | §6 Token prop；§8.1 Token 暴露面 | `remotes-props.test.tsx`（分支） |
 
@@ -374,7 +374,8 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | U-03 | `fetchModuleList` 的请求与错误处理 | **部分关闭**：`GET /api/v1/modules`，经 SDK `gatewayInstance`（无超时）；`code` 在 2xx 且有 `result` 时返回 `result.data`，否则抛错。SDK gateway 401 拦截：请求带 token 时清 cookie、`setupAxios(null)`、2 s 后（非 prod）跳 `/logout`；viewer 角色 401 不登出。启动时 token 通常为空（`getAuthToken` 读不到 HttpOnly 的 `pa-v4-token`），所以模块列表请求一般不带 Authorization。其他 SDK 调用留给 T1。 | `platform-apis@2.29.2 dist/index.mjs:105-106,250,354-410,902-907,1195-1204`；RT-MF-001/002 |
 | U-03 补充 `[P3]` | 模块列表响应形状 | stage 实测（`c1b5e37`）：`{code, result: {data, total}, trace_id}`，`result.data` 20 项，与 SDK `fetchModuleList` 取 `result.data` 的读法一致。 | RT-MF-001 |
 | U-11 `[P3]` | MF 2.0 remote 自身 React 树内的渲染错误是否回退 MF1 | **未关闭**（spec 0.3.0 新增）。代码只能证明：加载阶段失败（manifest 不可达、v2 remoteEntry 20 s 超时、export 缺失）与 `provider.render` 同步抛错会回退；remote 在自己的 React root 中渲染，内部渲染错误是否被 host ErrorBoundary 捕获需运行时故障注入。 | RT-MF-076、RT-MF-082 |
-| U-12 `[P3]` | 根级 `/{m}/…`（无 basename）在部署环境返回什么 | **未关闭**（spec 0.3.0 新增），决定 S-20 的实际影响。 | RT-FRAME-010 第 3 步、RT-SEC-106 b) |
+| U-12 `[P3]` `[P5]` | 根级 `/{m}/…`（无 basename）在部署环境返回什么 | **已关闭**（spec 0.3.2，stage + bff 源码）：BFF 只挂载 `/for/:site/*`，根级 `/{m}/…` 返回 404 “Cannot GET”。S-20 的后果是用户落到 404 页。 | RT-FRAME-010 第 3 步、RT-SEC-106 b) |
+| U-14 `[P5]` | 根级 ErrorBoundary 崩溃后不随路由重置 | **未关闭**（spec 0.3.2 新增）。用例在 T1 RT-ERR-008。T4 中 RT-MF-025 第 1 步崩溃后，须整页刷新再执行后续用例。 | RT-MF-025 |
 | U-05 | gateway `urls` key；`communication_platform` 的 `module` | **部分关闭**（spec 0.3.0 仍标"未关闭"；stage 实测只确认了响应外层形状，未记录 `urls` key）：SDK `resolveModuleUrl` 兼容两种 key，stage 候选顺序 `stage → development → dev`（production 甚至会回退到 `stage` URL）。但 host MF1 路径只读 `urls[APP_ENV]`，不兼容。gateway 实际返回什么仍需 stage 快照。 | `platform-shell@2.22.3 dist/remote-module.mjs:101-129`；`RemoteModule.tsx:74-75`；转为 RT-MF-004、RT-MF-047、RT-MF-071 |
 | U-07 | `/ontology` 的拒绝逻辑 | **ontology 部分关闭**：页面内判断 = `FEATURES.ontology` 开关 **且** 当前 business account 的 subsite `visibilityModules` 含 `ontology`；状态机 `loading → redirect → unauthenticated → ready`，URL 必须 https。是否需要 route 级 gate 仍是产品决策，保持打开。`/settings/administration` 不属于 T4。 | `core/hooks/useOntologyAccess.ts:26-71`；`@platform-base/api@1.5.0 dist/index.mjs:650-691`；RT-FRAME-030…035 |
 | U-02 | BFF cookie 属性（S-01 对比基线） | **部分关闭（供 T1 参考）**：`pa-v4-token` 为 HttpOnly、`secure`（非 development）、SameSite=Lax、Path=`/`、10 天，`ENV=STAGE` 时 Domain=`.srv.local`；`GET /for/:site/account/server/token` 返回 `{token}` 或 `401 {error:'no_session'}`，`Cache-Control: no-store`。hydration 部分仍由 T1 处理。 | `platform-bff@1.0.0 dist/index.mjs:4-27,377-383`；RT-SEC-101 |
@@ -394,7 +395,7 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | E-04 | §8.2 | `gcApi` 的 `keepUnusedDataFor` 为 3600 s（`core/store/api.ts`） | `core/store/api.ts` 未设置（RTK 默认 60 s）；3600 s 只在 `core/store/api/directories.ts:25` 的 countries 端点 | 同左 |
 | E-05 | OBS-FRAME-001、§8.1、S-03 | 绕过方式只写了后缀子域 | 还可用 userinfo（`https://developers.xsolla.com@evil.tld`）、拼接主机（`…xsolla.comevil.tld`）、不同端口。另外 `:frame_path` 被完全忽略；缺少 card/step 参数时不发请求、永久 loader | `available-domains.ts:11-12`；`IntegrationFrame/index.tsx:22-28` |
 | E-06 | OBS-FRAME-002 | 启用时 iframe，否则重定向 | 共 4 个状态：loading 时渲染空白；未启用重定向；无 token 显示英文 `You need to sign in…`；URL 缺失或非 https 显示英文 `Ontology is not available right now.`。accounts/subsite 请求失败时也走重定向 | `layouts/ontology/index.tsx:19-45`；`useOntologyAccess.ts:65-71` |
-| E-07 | OBS-FRAME-003、§6 | "host 不注册任何 message 监听" | host src 中成立；但 host 路由挂载的 SDK 页面 `TaxInterviewPage`（`/{m}/tax-interview`）与 `DocumentCenterDocuments`（`/{m}/finance/boxnet`）各有 iframe，并注册带 origin 校验的 `message` 监听（`exitConfirmed`；`uploadSuccess`/`uploadError` 等）。§6 的 iframe 清单也漏了这两个 | `platform-pages@3.25.2 dist/index.mjs:94-111,7810-7932` |
+| E-07 | OBS-FRAME-003、§6 | "host 不注册任何 message 监听" | host src 中成立；但 host 路由挂载的 SDK 页面 `TaxInterviewPage`（`/{m}/tax-interview`）与 `DocumentCenterDocuments`（`/{m}/finance/boxnet`）各有 iframe，并注册带 origin 校验的 `message` 监听（`exitConfirmed`；`uploadSuccess`/`uploadError` 等）。§6 的 iframe 清单也漏了这两个。`[P5]` spec 0.3.2 已对齐：`exitConfirmed` 重载 iframe，上传消息只上报 analytics | `platform-pages@3.25.2 dist/index.mjs:94-111,7810-7932` |
 | E-08 | OBS-MF-001/002 | 失败只写了脚本加载失败 | gateway 无条目且无静态配置时 `moduleConfig=null`，**永久 spinner，无错误，无请求**；这适用于所有 gateway-only remote（含 `xaa_widgets`、MF1 回退的 `communication_platform`）。错误文本还有 `Remote URL not found for scope: X`、`Remote container 'X' not found`、`Unknown error`；`Failed to load:` 中的 URL 不含 `?v=` | `RemoteModule.tsx:65-68,97-101`；`loadModule.ts:33-35,74-76` |
 | E-09（PARTIAL 修正 `[P3]`） | OBS-MF-003、AC-11 | "When `loadRemote` fails" 才回退 | 回退只在两类情况下成立：加载阶段失败（manifest 不可达、v2 remoteEntry 20 s 超时、export 缺失），或 `provider.render` **同步**抛错。remote 自身 React 树内的渲染错误是否回退为 [U]（U-11），原写法"渲染出错时也回退"过宽。manifest fetch 无超时；§8.2 未写 MF2 的超时行为（0.3.0 已补） | `createRemoteApp.tsx:19,45-59`；`bridge@0.0.2 RemoteAppWrapper-hOF0XI8X.js:253,323-336`；`runtime-core@2.9.0 SnapshotHandler.js:140-170`；`sdk@2.9.0 dom.js:19` |
 | E-10 | §8.2、S-02 | "首个加载失败后，第二个挂载会永久 spinner" | 只影响**首个加载进行中**挂载的调用者；失败后才挂载的调用者会正常重试。轮询 interval 在卸载后也不清理。可在 funding 页（`./nav` + App 同时挂载）稳定复现。跨浏览器 tab 不触发 | `loadModule.ts:22-31,55`；`Funding/index.tsx:94-105` |
@@ -415,9 +416,9 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | SEC（RT-SEC-101…108） | 8 | 1 | 4 | 3 |
 | **合计** | **105** | **4** | **45** | **56** |
 
-（`[分支差异]` 说明行不计入用例数。P3 新增 RT-MF-082、RT-API-052，各 P2；P4 新增 RT-MF-083（P2）；无废弃用例。）
+（`[分支差异]` 说明行不计入用例数。P3 新增 RT-MF-082、RT-API-052，各 P2；P4 新增 RT-MF-083（P2）；P5 修改 6 条，无新增；无废弃用例。）
 
-预期失败项（当前代码不满足期望，执行时判"已复现缺陷"而不是"用例失败"）`[P3]`：RT-SEC-101（S-01，stage 已复现）、RT-FRAME-002（S-03 / AC-10）、RT-FRAME-010（S-20 / AC-13）、RT-SEC-106 b)（S-20）、RT-MF-050/051（S-02）。
+预期失败项（当前代码不满足期望，执行时判"已复现缺陷"而不是"用例失败"）`[P3]`：RT-SEC-101（S-01，stage 已复现）、RT-FRAME-002（S-03 / AC-10）、RT-FRAME-010（S-20 / AC-13）、RT-SEC-106 b)（S-20）、RT-MF-050/051（S-02）、RT-MF-025 第 1 步（S-35）`[P5]`。
 
 覆盖对照：
 
@@ -431,6 +432,7 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | AC-10、AC-11、AC-13 | RT-FRAME-002、RT-MF-071、RT-FRAME-010 |
 | S-01、S-02、S-03、S-06、S-09、S-12、S-13、S-17 | SEC-101…104；MF-050/051/054；FRAME-002（4 种形式）、SEC-105；API-060；E12 不可达（无 stage 用例）；MF-080；MF-080；MF-014/081 |
 | S-20、S-30、S-32 `[P3]` | FRAME-010、SEC-106 b)；SEC-106 c)；FRAME-032/035 |
+| S-35、U-12、U-14 `[P5]` | MF-025（MF-023 为项目级对照）；FRAME-010、SEC-106 b)（U-12 已关闭）；U-14 由 T1 RT-ERR-008 主测 |
 | U-02（部分）、U-03、U-05、U-07、U-11、U-12 | 第 6 节 |
 | 已有自动化固定的用例 | 约 30 条引用了 colocated 单测或集成场景（I6、I7、I11、I12、D1）；`createRemoteApp.test.tsx` 只有 `it.todo`，AC-11 无自动化；S-02 失败分支、S-03 绕过形式均无自动化 |
 
@@ -476,3 +478,22 @@ allowlist 完整规则（`pages/IntegrationFrame/available-domains.ts:5-13`）�
 | 第 8 节 | 文档 | 统计 104 → 105；OBS-MF-002 错误文本的覆盖对照 |
 
 说明：现有用例中没有断言“只有 4 种文案”的行。RT-MF-040/041/042/047 各自断言一种具体文本，在各自的故障注入下仍然成立，所以不修改；“只有 4 种”的假设只体现在第 1 节流程图和第 7 节勘误 E-08 中。E-08 作为 0.2.0 勘误的历史记录保留不改，流程图已补全。
+
+---
+
+## P5 变更记录
+
+依据：spec 0.3.1 → 0.3.2 diff（S-35、OBS-FRAME-003、§10.3、U-12 关闭、U-14），stage 记录 `stage-results-2026-10-21.md`（`c1b5e37`，RT-ACC-001 的 metaframe 行、§1.1、RT-DASH-024 / RT-FRAME-010 行），以及 `772a320` 复核（`routes.tsx:104-114`、`routes/inside/projects.ts:207-224`、`layouts/Root.tsx:105-113`）。项目级 metaframe、gold、link 路由没有 `fetchData`，不受 S-35 影响。修改 6 条，新增 0 条，废弃 0 条。总数仍为 105（P0 4、P1 45、P2 56）。
+
+| 用例 / 位置 | 类型 | 原因 |
+|---|---|---|
+| RT-MF-025 | 修改 | S-35：`/{m}/metaframe` 当前必崩（stage 实测），标为预期失败项，附修复后预期（原 `projectId=NaN` 观察移到修复后）；项目级不受影响 |
+| RT-MF-023 | 修改 | S-35：补 `/{m}/'gold'` 必崩、项目级 gold 不受影响的说明 |
+| RT-FRAME-010 | 修改 | U-12 已关闭：第 3 步结果改为 BFF 404 “Cannot GET” |
+| RT-SEC-106 | 修改 | 同上，b) 落到 BFF 404 页 |
+| RT-FRAME-041 | 修改 | OBS-FRAME-003（0.3.2）：追溯补 OBS-FRAME-003，写明只有 `exitConfirmed` 会重载 iframe |
+| RT-FRAME-042 | 修改 | OBS-FRAME-003（0.3.2）：上传消息只上报 analytics；证据行号按 spec 改为 `7875-7912`，与 RT-FRAME-041 对比 |
+| 第 2 节 #13、#15 | 清单 | 标注 merchant 级 gold 与 metaframe 的 S-35 |
+| 第 6 节、第 7 节 E-07、第 8 节 | 文档 | U-12 关闭；新增 U-14；E-07 标为已对齐；预期失败项补 RT-MF-025 第 1 步；覆盖对照补 S-35、U-12、U-14 |
+
+核对后未改：RT-SEC-101…104（§10.3 对 S-01 的结论与 P3 写入的 stage 结果一致）；RT-FRAME-040（host 本身仍不监听 `message`）；RT-MF-024（项目级 link 无 `fetchData`）。

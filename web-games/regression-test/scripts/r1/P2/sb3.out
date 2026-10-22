@@ -1,0 +1,144 @@
+{
+ "at": "2026-10-21T07:11:21.852Z",
+ "steps": [
+  {
+   "label": "sb 317869",
+   "t": 59979,
+   "r": {
+    "count": -1
+   }
+  },
+  {
+   "err": "Error: page.evaluate: SecurityError: Failed to execute 'pushState' on 'History': A history state object with URL 'chrome-error://chromewebdata/for/web",
+   "url": "chrome-error://chromewebdata/"
+  }
+ ],
+ "ev": [
+  {
+   "t": 5,
+   "doc": "accounts-sdk-skeleton/for/web-games/account/53105/projects/317869/site-builder",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 9523,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 9531,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 9538,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 9538,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 11342,
+   "s": 401,
+   "u": "account-platform-gateway/api/organization/53105/detail"
+  },
+  {
+   "t": 11342,
+   "ce": "Failed to load resource: the server responded with a status of 401 ()"
+  },
+  {
+   "t": 11389,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 11390,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 11872,
+   "ce": "Failed to load resource: the server responded with a status of 400 ()"
+  },
+  {
+   "t": 11874,
+   "ce": "Failed to load resource: the server responded with a status of 400 ()"
+  },
+  {
+   "t": 11874,
+   "s": 401,
+   "u": "chat/api/v2/support-hub/53105/notifications/status"
+  },
+  {
+   "t": 11874,
+   "ce": "Failed to load resource: the server responded with a status of 401 ()"
+  },
+  {
+   "t": 11957,
+   "ce": "Failed to load resource: the server responded with a status of 400 ()"
+  },
+  {
+   "t": 11959,
+   "ce": "Failed to load resource: the server responded with a status of 400 ()"
+  },
+  {
+   "t": 12688,
+   "doc": "xsolla/metrics/_/service_worker/6a60/sw_iframe.html",
+   "init": "script",
+   "st": [
+    "xsolla/metrics/gtag/js:p:1194",
+    "xsolla/metrics/gtag/js:l.ht:1195",
+    "xsolla/metrics/gtag/js::1193"
+   ]
+  },
+  {
+   "t": 12779,
+   "doc": "www/tr/",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 13059,
+   "ce": "Refused to display 'https://xsolla.com/' in a frame because it set 'X-Frame-Options' to 'deny'."
+  },
+  {
+   "t": 13347,
+   "doc": "accounts-sdk-skeleton/for/web-games/account/logout",
+   "init": "script",
+   "st": [
+    "cdn/business-account-stage/stage-web-games-20261005-03/for/web-games/vendors.28e464::1"
+   ]
+  },
+  {
+   "t": 59980,
+   "mark": "nav->316818"
+  }
+ ],
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "GET",
+   "url": "https://accounts-sdk-skeleton.nl-k8s-stage.srv.local/for/web-games/account/logout"
+  }
+ ]
+}

@@ -1,0 +1,162 @@
+{
+ "at": "2026-10-21T06:19:49.457Z",
+ "ls0": "3be8f0bbc49d2e12ce4a54ec03cf1c4b46381b92,_gcl_ls,_mm_uid_1004,_mm_uid_3002,_mm_uid_900023,_xm_mid,account,consent_id,gdpr_consent_mode,i18nextLng,lastExternalReferrer,lastExternalReferrerTime,li_adsId,merchantId,merchantName,merchantRole,pa-v4-token,userAvatar,userEmail,userId,wikiLink,xsollauid",
+ "collapsed": "app-root__content-v3 app-root__content-v3--sidebar-collapsed app-root__content-v3_p0",
+ "dom": [
+  {
+   "tag": "BUTTON",
+   "id": "sidebar-other-tools",
+   "vis": true,
+   "a": null,
+   "html": "<button type=\"button\" data-id=\"sidebar-other-tools\" aria-haspopup=\"menu\" class=\"sc-dLMFU jtiOCP\"><span><div class=\"sc-dcJsrY cJRuBS\" aria-hidden=\"true\"><svg vie"
+  }
+ ],
+ "collapsedLeaves": [
+  "DIV#merchant-sidebar-v2",
+  "DIV#sidebar-main-menu",
+  "A#sidebar-get-started",
+  "A#sidebar-dashboard",
+  "A#sidebar-projects",
+  "BUTTON#sidebar-transactions",
+  "A#sidebar-support-transactions",
+  "A#sidebar-support-tickets",
+  "A#sidebar-support-subscribers",
+  "BUTTON#sidebar-analytics",
+  "A#sidebar-analytics-payments",
+  "A#sidebar-analytics-anti-fraud",
+  "A#sidebar-analytics-catalog",
+  "A#sidebar-analytics-players",
+  "A#sidebar-analytics-engagement",
+  "A#sidebar-analytics-web-shop",
+  "A#sidebar-analytics-support",
+  "DIV#project-sidebar-v2-loading",
+  "DIV#project-sidebar-v2-navigation",
+  "DIV#sidebar-bottom-sections",
+  "BUTTON#sidebar-billing-center",
+  "A#sidebar-payouts",
+  "BUTTON#sidebar-document-center",
+  "A#sidebar-agreements",
+  "A#sidebar-tax-interview",
+  "A#sidebar-document-reports",
+  "A#documents-v2",
+  "BUTTON#sidebar-settings",
+  "A#sidebar-settings-members",
+  "DIV#sidebar-get-started",
+  "A#sidebar-get-started",
+  "DIV#sidebar-dashboard",
+  "A#sidebar-dashboard",
+  "DIV#sidebar-projects",
+  "A#sidebar-projects",
+  "BUTTON#sidebar-transactions",
+  "BUTTON#sidebar-analytics",
+  "BUTTON#sidebar-other-tools",
+  "BUTTON#sidebar-billing-center",
+  "BUTTON#sidebar-document-center"
+ ],
+ "menu": [
+  {
+   "tag": "BUTTON",
+   "id": "sidebar-other-tools",
+   "vis": true,
+   "a": null,
+   "html": "<button type=\"button\" data-id=\"sidebar-other-tools\" aria-expanded=\"false\" aria-controls=\"sidebar-collapsible-sidebar-other-tools\" class=\"sc-esYiGF rxtoj\" data-a"
+  },
+  {
+   "tag": "A",
+   "id": "sidebar-sdk",
+   "vis": true,
+   "a": {
+    "href": "/for/web-games/account/53105/projects/317869/sdk",
+    "target": null,
+    "rel": null,
+    "inside": true
+   },
+   "html": "<a class=\"xui-sb-item\" data-id=\"sidebar-sdk\" href=\"/for/web-games/account/53105/projects/317869/sdk\" data-analytics-ev=\"monetization | sdk\"><span class=\"sc-jxOS"
+  },
+  {
+   "tag": "A",
+   "id": "sidebar-other-tools-email-customizer",
+   "vis": true,
+   "a": {
+    "href": "https://sitebuilder.xsolla.com/next-emails/merchant/53105/project/317869",
+    "target": "_blank",
+    "rel": "noopener noreferrer",
+    "inside": true
+   },
+   "html": "<a rel=\"noopener noreferrer\" href=\"https://sitebuilder.xsolla.com/next-emails/merchant/53105/project/317869\" class=\"xui-sb-item\" target=\"_blank\" data-id=\"sideba"
+  },
+  {
+   "tag": "BUTTON",
+   "id": "sidebar-other-tools",
+   "vis": true,
+   "a": null,
+   "html": "<button type=\"button\" data-id=\"sidebar-other-tools\" aria-haspopup=\"menu\" class=\"sc-dLMFU jtiOCP\"><span><div class=\"sc-dcJsrY cJRuBS\" aria-hidden=\"true\"><svg vie"
+  }
+ ],
+ "afterGroupClick": "app-root__content-v3 app-root__content-v3--sidebar-collapsed app-root__content-v3_p0",
+ "menuRoot": {
+  "id": "",
+  "html": "<div role=\"menu\" class=\"sc-feUZmu fRnWqZ\" style=\"top: 310.398px; left: 60px;\"><div class=\"sc-fUnMCh kWCEbA\"><div class=\"sc-hzhJZQ bhRFq\"><span color=\"#000000\" class=\"sc-jXbUNg fOQvPv\" style=\"margin-to",
+  "anc": "portal"
+ },
+ "ctrl": {
+  "vis": 264,
+  "inMenu": false,
+  "anc": "in-sidebar"
+ },
+ "menus": [
+  {
+   "txt": "Distribution\nGame Player Platform\nLauncher",
+   "items": [
+    {
+     "tag": "A",
+     "id": "sidebar-distribution-game-player-platform",
+     "role": null,
+     "href": "/for/web-games/account/53105/projects/317869/player-platform",
+     "target": null,
+     "rel": null,
+     "t": "Game Player Platform"
+    },
+    {
+     "tag": "A",
+     "id": "sidebar-launcher",
+     "role": null,
+     "href": "/for/web-games/account/53105/projects/317869/new-launcher",
+     "target": null,
+     "rel": null,
+     "t": "Launcher"
+    }
+   ]
+  }
+ ],
+ "collapsedOtherHtml": {
+  "expanded": null,
+  "parent": "<div class=\"sc-cPiKLX iPutqc\"><div data-id=\"sidebar-get-started\" class=\"sc-eeDRCY fPaIzp\"><a data-id=\"sidebar-get-started\" aria-label=\"Get started\" href=\"/for/web-games/account/53105/get-started\"><span><div class=\"sc-dcJsrY cJRuBS\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http:"
+ },
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  }
+ ]
+}

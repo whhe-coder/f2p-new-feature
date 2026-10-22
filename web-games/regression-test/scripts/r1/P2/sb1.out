@@ -1,0 +1,359 @@
+{
+ "at": "2026-10-21T07:06:57.295Z",
+ "steps": [
+  {
+   "label": "sb 317869",
+   "t": 59684,
+   "url": "/53105/projects/317869/site-builder",
+   "r": [],
+   "dom": {
+    "spin": 0,
+    "txt": "omize the design, manage content, and publish changes at any time. Draft angry-birds-2-store-47e5 https://angry-birds-2-store-47e5-sb-site.nl-k8s-stage.srv.local Last changed - Last published - ● live"
+   },
+   "cookies": [
+    {
+     "n": "gc-pa-locale",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "en"
+    },
+    {
+     "n": "gc-pa-merchant-id",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "53105"
+    },
+    {
+     "n": "gc-pa-project-id",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "317869"
+    },
+    {
+     "n": "sb-pa-locale",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:20.000Z",
+     "v": "en"
+    },
+    {
+     "n": "sb-pa-merchant-id",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:20.000Z",
+     "v": "53105"
+    },
+    {
+     "n": "sb-pa-project-id",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:20.000Z",
+     "v": "317869"
+    }
+   ]
+  },
+  {
+   "label": "sb 316818",
+   "url": "/53105/projects/316818/site-builder",
+   "r": [],
+   "poll": [
+    {
+     "t": 60226,
+     "spin": 0,
+     "conn": true,
+     "tail": "oject Members Integration settings API keys Chat Chat ● live"
+    },
+    {
+     "t": 60731,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 61235,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 61739,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 62243,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 62747,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 63251,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 63755,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 64259,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 64763,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 65267,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 65770,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 66274,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 66778,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 67282,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 67786,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 68291,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 68795,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 69299,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 69803,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 70307,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 70811,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 71315,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    },
+    {
+     "t": 71817,
+     "spin": 0,
+     "conn": true,
+     "tail": "bers Integration settings Webhooks API keys Chat Chat ● live"
+    }
+   ],
+   "cookies": [
+    {
+     "n": "gc-pa-locale",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "en"
+    },
+    {
+     "n": "gc-pa-merchant-id",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "53105"
+    },
+    {
+     "n": "gc-pa-project-id",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "317869"
+    },
+    {
+     "n": "sb-pa-locale",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:37.000Z",
+     "v": "en"
+    },
+    {
+     "n": "sb-pa-merchant-id",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:37.000Z",
+     "v": "53105"
+    },
+    {
+     "n": "sb-pa-project-id",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:37.000Z",
+     "v": "316818"
+    }
+   ],
+   "cur": 316818
+  },
+  {
+   "label": "back 317869",
+   "url": "/53105/projects/317869/site-builder",
+   "r": [],
+   "cookies": [
+    {
+     "n": "gc-pa-locale",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "en"
+    },
+    {
+     "n": "gc-pa-merchant-id",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "53105"
+    },
+    {
+     "n": "gc-pa-project-id",
+     "d": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "1969-12-31T23:59:59.000Z",
+     "v": "317869"
+    },
+    {
+     "n": "sb-pa-locale",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:49.000Z",
+     "v": "en"
+    },
+    {
+     "n": "sb-pa-merchant-id",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:49.000Z",
+     "v": "53105"
+    },
+    {
+     "n": "sb-pa-project-id",
+     "d": ".srv.local",
+     "p": "/",
+     "ss": "Lax",
+     "exp": "2026-10-31T07:06:49.000Z",
+     "v": "317869"
+    }
+   ],
+   "cur": 317869
+  }
+ ],
+ "ev": [
+  {
+   "t": 18,
+   "u": "https://accounts-sdk-skeleton.nl-k8s-stage.srv.local/for/web-games/account/53105/projects/317869/sit"
+  },
+  {
+   "t": 10534,
+   "u": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/774666103/"
+  },
+  {
+   "t": 42991,
+   "u": "https://sb-pa.nl-k8s-stage.srv.local/remoteEntry.js"
+  }
+ ],
+ "blockedWrites": [
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  }
+ ]
+}

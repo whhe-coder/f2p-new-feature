@@ -1,0 +1,22 @@
+const {run, BASE, settle} = require(__dirname + '/../lib.cjs');
+const D = () => [...document.querySelectorAll('[data-id*="email-customizer"], [data-id="sidebar-sdk"], [data-id="sidebar-other-tools"]')].map(e => { const a = e.closest('a') || e.querySelector('a'); const r = e.getBoundingClientRect(); return {tag: e.tagName, id: e.getAttribute('data-id'), vis: r.width > 0 && r.height > 0, a: a ? {href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), inside: e.contains(a)} : null, html: e.outerHTML.slice(0, 160)}; });
+run(async (page, ctx) => {
+  const out = {};
+  await page.goto(`${BASE}/53105/dashboard`, {waitUntil: 'domcontentloaded'});
+  await page.waitForSelector('[data-id=sidebar-dashboard]', {timeout: 70000}).catch(async e => { throw new Error('nosidebar at ' + page.url().slice(-40) + ' ' + (await page.evaluate(() => document.body.innerText.slice(0, 200)))); }); await page.waitForTimeout(1500);
+  out.ls0 = await page.evaluate(() => Object.keys(localStorage).sort().join(','));
+  await page.getByLabel('Collapse sidebar').click();
+  await page.waitForTimeout(1500);
+  out.collapsed = await page.evaluate(() => document.getElementById('app-root__content').className);
+  out.dom = await page.evaluate(D);
+  out.collapsedLeaves = await page.evaluate(() => [...document.querySelectorAll('.app-root__sidebar-fixed [data-id]')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0; }).map(e => e.tagName + '#' + e.getAttribute('data-id')).slice(0, 40));
+  await page.locator('[data-id="sidebar-other-tools"]').click();
+  await page.waitForTimeout(1500);
+  out.menu = await page.evaluate(D);
+  out.afterGroupClick = await page.evaluate(() => document.getElementById('app-root__content').className);
+  out.menuRoot = await page.evaluate(() => { const m = document.querySelector('[role=menu]'); return m ? {id: m.id, html: m.outerHTML.slice(0, 200), anc: m.closest('.app-root__sidebar-fixed') ? 'in-sidebar' : 'portal'} : null; });
+  out.ctrl = await page.evaluate(() => { const c = document.getElementById('sidebar-collapsible-sidebar-other-tools'); return c ? {vis: c.getBoundingClientRect().width, inMenu: !!c.closest('[role=menu]'), anc: c.closest('.app-root__sidebar-fixed') ? 'in-sidebar' : 'portal'} : null; });
+  out.menus = await page.evaluate(() => [...document.querySelectorAll('[role=menu]')].map(m => ({txt: m.innerText.slice(0, 200), items: [...m.querySelectorAll('[data-id], a, button, [role=menuitem]')].map(e => ({tag: e.tagName, id: e.getAttribute('data-id'), role: e.getAttribute('role'), href: e.getAttribute('href'), target: e.getAttribute('target'), rel: e.getAttribute('rel'), t: e.textContent.trim().slice(0, 25)})).slice(0, 20)})));
+  out.collapsedOtherHtml = await page.evaluate(() => { const b = [...document.querySelectorAll('button[data-id=sidebar-other-tools][aria-haspopup]')][0]; return b ? {expanded: b.getAttribute('aria-expanded'), parent: b.parentElement.outerHTML.slice(0, 300)} : null; });
+  return out;
+});

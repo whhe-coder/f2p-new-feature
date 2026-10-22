@@ -1,0 +1,1 @@
+let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const j=JSON.parse(s);if(j.blockedWrites){const c={};for(const b of j.blockedWrites){const k=b.method+' '+b.url.replace(/^(https?:\/\/[^/]+)(\/[^?]*)?.*$/,(m,h,p)=>h+(p||'').slice(0,60));c[k]=(c[k]||0)+1;}j.blockedWrites=c;}console.log(JSON.stringify(j,null,1));}catch(e){console.log(s)}});

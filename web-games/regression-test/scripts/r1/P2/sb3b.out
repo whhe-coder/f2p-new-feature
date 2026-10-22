@@ -1,0 +1,228 @@
+{
+ "at": "2026-10-21T07:13:58.102Z",
+ "steps": [
+  {
+   "label": "sb 317869",
+   "t": 22647,
+   "r": {
+    "count": 1,
+    "key": null,
+    "projectId": "317869",
+    "rootURL": "/53105/projects/317869/site-builder",
+    "sameAsSaved": null,
+    "hostText": "Sites Analytics Create site Build and publish your game's landing page, multi-page website or storefront, free of charge"
+   }
+  },
+  {
+   "label": "sb 316818",
+   "poll": [
+    {
+     "t": 23086,
+     "count": 1,
+     "key": null,
+     "projectId": "316818",
+     "rootURL": "/53105/projects/316818/site-builder",
+     "sameAsSaved": null,
+     "hostText": ""
+    }
+   ]
+  },
+  {
+   "label": "back",
+   "poll2": [
+    {
+     "t": 37276,
+     "url": "count/53105/projects/317869/site-builder",
+     "count": 1,
+     "key": null,
+     "projectId": "317869",
+     "rootURL": "/53105/projects/317869/site-builder",
+     "sameAsSaved": null,
+     "hostText": ""
+    },
+    {
+     "t": 37678,
+     "url": "count/53105/projects/317869/site-builder",
+     "count": 1,
+     "key": null,
+     "projectId": "317869",
+     "rootURL": "/53105/projects/317869/site-builder",
+     "sameAsSaved": null,
+     "hostText": "Sites Analytics Create site Build and publish your game's landing page, multi-page website or storefront, free of charge"
+    }
+   ]
+  }
+ ],
+ "ev": [
+  {
+   "t": 5,
+   "doc": "accounts-sdk-skeleton/for/web-games/account/53105/projects/317869/site-builder",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 4864,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 4872,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 4879,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 4879,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 7212,
+   "doc": "www/tr/",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 7457,
+   "doc": "www/tr/",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 7664,
+   "doc": "xsolla/metrics/_/service_worker/6a60/sw_iframe.html",
+   "init": "script",
+   "st": [
+    "xsolla/metrics/gtag/js:p:1194",
+    "xsolla/metrics/gtag/js:l.ht:1195",
+    "xsolla/metrics/gtag/js::1193"
+   ]
+  },
+  {
+   "t": 7947,
+   "ce": "Refused to display 'https://xsolla.com/' in a frame because it set 'X-Frame-Options' to 'deny'."
+  },
+  {
+   "t": 8320,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 8321,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 10711,
+   "doc": "chat/communication-hub/widget",
+   "init": "script",
+   "st": [
+    "chat/communication-hub/widget/livechat-iframe.js:ul:1",
+    "chat/communication-hub/widget/livechat-iframe.js:ul:1",
+    "chat/communication-hub/widget/livechat-iframe.js:ul:1",
+    "chat/communication-hub/widget/livechat-iframe.js:ul:1",
+    "chat/communication-hub/widget/livechat-iframe.js:bl:1"
+   ]
+  },
+  {
+   "t": 14940,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 15489,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 17071,
+   "ce": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "t": 17133,
+   "ce": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "t": 17488,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 20488,
+   "ce": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  },
+  {
+   "t": 22648,
+   "mark": "nav->316818"
+  },
+  {
+   "t": 22701,
+   "doc": "www/tr/",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 23080,
+   "ce": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "t": 23118,
+   "ce": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "t": 36820,
+   "mark": "nav->317869"
+  },
+  {
+   "t": 36886,
+   "doc": "www/tr/",
+   "init": "other",
+   "st": []
+  },
+  {
+   "t": 37373,
+   "ce": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "t": 37413,
+   "ce": "Failed to load resource: the server responded with a status of 404 ()"
+  }
+ ],
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  }
+ ]
+}

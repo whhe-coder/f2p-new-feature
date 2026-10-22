@@ -1,0 +1,3 @@
+F7BA8FFFE8A2DF1F2F46C7839B61F4C8 
+39337C766E30AC4D79266F77B32EE1FB https://claude.ai/chrome/installed
+BE7B707130DFFC01D18847CC98D8851E https://accounts-sdk-skeleton.nl-k8s-stage.srv.local/for/web-games/account/53105/get-started

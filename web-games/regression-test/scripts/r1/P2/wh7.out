@@ -1,0 +1,185 @@
+{
+ "at": "2026-10-21T07:03:35.197Z",
+ "cur": 316818,
+ "steps": [
+  {
+   "t": 13613,
+   "url": "/53105/projects/316818/edit/webhooks/payments",
+   "r": [
+    {
+     "name": "payments",
+     "exposedModule": "./webhooksPaymentsTab",
+     "ws": 0,
+     "cur": {
+      "f": false,
+      "n": 148
+     },
+     "project_id": "316818"
+    }
+   ],
+   "txt": "Secret keys\nCreate as many secrets as you need. Keep your configuration simple by deleting secrets you're no longer using — this maintains clean security management.\nActive\nCurrent key\nAdd key\nDisable webhooks\nSave settings\nMake sure all required webhooks work correctly to avoid errors when going live.\nSee the list of required webhooks and how to test them.\nTesting\nStore\nPayments\nSubscriptions\nDispute\nInternal use only\nCheck our guide to view all webhooks, their parameters, and setup instructions\nOpen documentation\n● live"
+  },
+  {
+   "clickedTesting": 13704
+  },
+  {
+   "t": 13720,
+   "r": [
+    {
+     "name": "payments",
+     "exposedModule": "./webhooksPaymentsTab",
+     "ws": 0,
+     "cur": {
+      "f": false,
+      "n": 148
+     },
+     "project_id": "316818"
+    }
+   ]
+  },
+  {
+   "t": 26932,
+   "url": "/53105/projects/316818/edit/webhooks/dispute",
+   "r": [
+    {
+     "name": "payments",
+     "exposedModule": "./webhooksDisputeTab",
+     "ws": 0,
+     "cur": {
+      "f": false,
+      "n": 148
+     },
+     "project_id": "316818"
+    }
+   ]
+  },
+  {
+   "t": 30467,
+   "url": "/53105/projects/316818/edit/webhooks/virtual-items",
+   "r": []
+  },
+  {
+   "t": 34003,
+   "url": "/53105/projects/316818/edit/webhooks/pay2play",
+   "r": [
+    {
+     "name": "storefront",
+     "exposedModule": "./webhooks-capi",
+     "ws": "absent"
+    }
+   ]
+  },
+  {
+   "t": 37539,
+   "url": "/53105/projects/316818/edit/webhooks/unknown-tab",
+   "r": [
+    {
+     "name": "storefront",
+     "exposedModule": "./webhooks-capi",
+     "ws": "absent"
+    }
+   ]
+  }
+ ],
+ "ev": [
+  {
+   "t": 10140,
+   "m": "OPTIONS",
+   "u": "account-platform-gateway/api/project/detail/317869"
+  },
+  {
+   "t": 10141,
+   "m": "OPTIONS",
+   "u": "account-platform-gateway/mapi/merchant/current/projects/317869/webhook_storage_integration"
+  },
+  {
+   "t": 10141,
+   "m": "OPTIONS",
+   "u": "account-platform-gateway/api/project/detail/316818"
+  },
+  {
+   "t": 10141,
+   "m": "OPTIONS",
+   "u": "account-platform-gateway/mapi/merchant/current/projects/316818/webhook_storage_integration"
+  },
+  {
+   "t": 10141,
+   "m": "GET",
+   "u": "account-platform-gateway/api/project/detail/317869"
+  },
+  {
+   "t": 10141,
+   "m": "GET",
+   "u": "account-platform-gateway/mapi/merchant/current/projects/317869/webhook_storage_integration"
+  },
+  {
+   "t": 10142,
+   "m": "GET",
+   "u": "account-platform-gateway/api/project/detail/316818"
+  },
+  {
+   "t": 10142,
+   "m": "GET",
+   "u": "account-platform-gateway/mapi/merchant/current/projects/316818/webhook_storage_integration"
+  },
+  {
+   "t": 10142,
+   "m": "GET",
+   "u": "account-platform-gateway/mapi/merchant/current/projects/316818/store/webhook/settings"
+  },
+  {
+   "t": 10142,
+   "m": "OPTIONS",
+   "u": "account-platform-gateway/mapi/merchant/current/projects/316818/store/webhook/settings"
+  },
+  {
+   "t": 12107,
+   "m": "GET",
+   "u": "account-platform-gateway/mapi/merchant/current/currency/list",
+   "st": [
+    "cdn/business-account-stage/stage-web-games-20261005-03/for/web-games/vendors.28e464d50869ff92d684.js:Ar.XMLHttpRequest.send",
+    "cdn/business-account-stage/stage-web-games-20261005-03/for/web-games/vendors.28e464d50869ff92d684.js:",
+    "cdn/business-account-stage/stage-web-games-20261005-03/for/web-games/vendors.28e464d50869ff92d684.js:c",
+    "cdn/business-account-stage/stage-web-games-20261005-03/for/web-games/vendors.28e464d50869ff92d684.js:"
+   ]
+  },
+  {
+   "t": 12107,
+   "m": "OPTIONS",
+   "u": "account-platform-gateway/mapi/merchant/current/currency/list",
+   "st": []
+  },
+  {
+   "t": 12687,
+   "resp": 200,
+   "u": "currency/list"
+  },
+  {
+   "t": 26968,
+   "m": "GET",
+   "u": "gc-publisher-account/remote-entry-game-commerce.js"
+  }
+ ],
+ "blockedWrites": [
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  }
+ ]
+}

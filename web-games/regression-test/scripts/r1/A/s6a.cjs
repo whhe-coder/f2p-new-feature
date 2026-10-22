@@ -1,0 +1,23 @@
+const {run, BASE, settle, track, pick, now, waitFor, clientNav, remotes, path} = require(__dirname + '/../A/h.cjs');
+const M = '/for/web-games/account/53105';
+const brief = r => Array.isArray(r) ? r.map(x => ({name: x.name, exposedModule: x.exposedModule, props: x.props, childMounted: x.childMounted})) : r;
+run(async (page) => {
+  const tr = track(page); const bad = []; page.on('response', r => { if (r.status() === 401) bad.push(r.url().split('?')[0].slice(0, 120)); });
+  const out = {t1: now()};
+  const resp = await page.goto(`${BASE}/53105/support`, {waitUntil: 'domcontentloaded', timeout: 60000}); out.doc = resp && resp.status();
+  await waitFor(page, () => /support\/transactions/.test(location.pathname), 40000);
+  out.u1 = path(await settle(page));
+  await waitFor(page, () => !!window.transactions_publisher_account, 40000);
+  await page.waitForTimeout(5000);
+  out.support = brief(await remotes(page));
+  out.t2 = now();
+  await clientNav(page, M + '/support/subscriptions');
+  await waitFor(page, () => !!window.subscriptions_publisher_account, 25000);
+  await page.waitForTimeout(5000);
+  out.u2 = path(page.url());
+  out.subs = brief(await remotes(page));
+  out.subsWin = await page.evaluate(() => typeof window.subscriptions_publisher_account);
+  out.n401 = bad.length; out.reqs = pick(tr.gw, /remoteEntry|transactions_publisher_account|subscriptions-publisher|\.js\?v=/);
+  out.errs = [...new Set(tr.errs.filter(e => !/BLOCKED_BY_CLIENT|status of 404|Datadog/.test(e)))].slice(0, 8);
+  return out;
+});

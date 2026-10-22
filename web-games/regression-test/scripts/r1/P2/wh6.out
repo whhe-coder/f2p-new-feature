@@ -1,0 +1,172 @@
+{
+ "at": "2026-10-21T07:02:25.783Z",
+ "cur": 316818,
+ "steps": [
+  {
+   "label": "loaded",
+   "t": 52636,
+   "url": "/53105/projects/316818/edit/webhooks/store",
+   "r": [
+    {
+     "name": "storefront",
+     "exposedModule": "./webhooks-capi",
+     "ws": "absent"
+    }
+   ]
+  },
+  {
+   "hdrs": [
+    "Simon Testing MCP",
+    "Testing"
+   ]
+  },
+  {
+   "clicked": "/^Testing/i"
+  },
+  {
+   "label": "expanded",
+   "t": 55289,
+   "url": "/53105/projects/316818/edit/webhooks/store",
+   "r": [
+    {
+     "name": "storefront",
+     "exposedModule": "./webhooks-capi",
+     "ws": "absent"
+    }
+   ]
+  },
+  {
+   "toggles": [
+    "Payments",
+    "Payments",
+    "Subscriptions",
+    "Storefronts",
+    "Store",
+    "Payments",
+    "Subscriptions",
+    "Dispute"
+   ]
+  },
+  {
+   "label": "tab:payments",
+   "t": 67790,
+   "url": "/53105/projects/316818/edit/webhooks/payments",
+   "r": [
+    {
+     "name": "payments",
+     "exposedModule": "./webhooksPaymentsTab",
+     "ws": 0,
+     "cur": {
+      "f": false,
+      "n": 148
+     },
+     "project_id": "316818"
+    }
+   ],
+   "mountT": 65289,
+   "currencyReqsDuring": 0
+  },
+  {
+   "label": "tab:dispute",
+   "t": 70581,
+   "url": "/53105/projects/316818/edit/webhooks/dispute",
+   "r": [
+    {
+     "name": "payments",
+     "exposedModule": "./webhooksDisputeTab",
+     "ws": 0,
+     "cur": {
+      "f": false,
+      "n": 148
+     },
+     "project_id": "316818"
+    }
+   ],
+   "mountT": 68079,
+   "currencyReqsDuring": 0
+  },
+  {
+   "label": "tab:store",
+   "t": 73372,
+   "url": "/53105/projects/316818/edit/webhooks/store",
+   "r": [
+    {
+     "name": "storefront",
+     "exposedModule": "./webhooks-capi",
+     "ws": "absent"
+    }
+   ],
+   "mountT": 70870,
+   "currencyReqsDuring": 0
+  },
+  {
+   "label": "tab:subscriptions",
+   "t": 76163,
+   "url": "/53105/projects/316818/edit/webhooks/subscriptions",
+   "r": [
+    {
+     "name": "subscriptions",
+     "exposedModule": "./webhooks",
+     "ws": "absent",
+     "project_id": "316818"
+    }
+   ],
+   "mountT": 73661,
+   "currencyReqsDuring": 0
+  }
+ ],
+ "ev": [
+  {
+   "t": 20964,
+   "m": "GET",
+   "u": ""
+  },
+  {
+   "t": 23821,
+   "m": "GET",
+   "u": ""
+  },
+  {
+   "t": 49630,
+   "m": "GET",
+   "u": "/remote-entry-game-commerce.js?v=720c7b41-b82b-4f64-ad3d-2f33d59f97f8"
+  },
+  {
+   "t": 55437,
+   "m": "GET",
+   "u": "/mapi/merchant/current/currency/list"
+  },
+  {
+   "t": 60943,
+   "resp": 200,
+   "u": "currency/list"
+  },
+  {
+   "t": 73408,
+   "m": "GET",
+   "u": "/remoteEntry.js?v=7204919d-8bc4-4c17-861b-b4a20cf937f7"
+  }
+ ],
+ "blockedWrites": [
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  }
+ ]
+}

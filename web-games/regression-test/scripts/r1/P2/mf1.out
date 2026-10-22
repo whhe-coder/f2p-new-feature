@@ -1,0 +1,97 @@
+{
+ "at": "2026-10-21T07:15:54.061Z",
+ "steps": [
+  {
+   "label": "full site-builder/x",
+   "t": 18905,
+   "url": "/53105/projects/317869/site-builder",
+   "r": {
+    "count": 1,
+    "key": null,
+    "projectId": "317869",
+    "rootURL": "/53105/projects/317869/site-builder",
+    "sameAsSaved": null,
+    "hostText": "Sites Analytics Create site Build and publish your game's landing page, multi-page website or storefront, free of charge"
+   },
+   "nf": false
+  },
+  {
+   "label": "client network/x",
+   "t": 42295,
+   "url": "/53105/projects/317869/network/x",
+   "r": {
+    "count": 1,
+    "key": null,
+    "sameAsSaved": null,
+    "hostText": ""
+   },
+   "nf": false,
+   "cur": 317869
+  }
+ ],
+ "ev": [
+  {
+   "t": 1180,
+   "doc": 200,
+   "ct": "text/html; charset=utf-8",
+   "u": "/53105/projects/317869/site-builder/x"
+  },
+  {
+   "t": 2797,
+   "s": 200,
+   "u": "account-platform-gateway/api/v1/modules"
+  },
+  {
+   "t": 12882,
+   "s": 200,
+   "u": "sb-pa/remoteEntry.js?v=f662d5c1"
+  },
+  {
+   "t": 19671,
+   "s": 200,
+   "u": "pa-xpn-stage/remoteEntry.js?v=9677fe5b"
+  }
+ ],
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  }
+ ]
+}

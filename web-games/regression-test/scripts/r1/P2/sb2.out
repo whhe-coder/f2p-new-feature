@@ -1,0 +1,88 @@
+{
+ "at": "2026-10-21T07:08:42.793Z",
+ "steps": [
+  {
+   "label": "sb 317869",
+   "t": 52273,
+   "r": {
+    "count": 1,
+    "key": null,
+    "projectId": "317869",
+    "rootURL": "/53105/projects/317869/site-builder",
+    "sameAsSaved": null,
+    "hostText": null
+   },
+   "c": {
+    "sb-pa-locale": "en|.srv.local|/|Lax|2026-10-31T07:07:47.000Z",
+    "sb-pa-merchant-id": "53105|.srv.local|/|Lax|2026-10-31T07:07:47.000Z",
+    "sb-pa-project-id": "317869|.srv.local|/|Lax|2026-10-31T07:07:47.000Z"
+   }
+  },
+  {
+   "label": "sb 316818",
+   "url": "/53105/projects/316818/site-builder",
+   "poll": [
+    {
+     "t": 52713,
+     "count": 1,
+     "key": null,
+     "projectId": "316818",
+     "rootURL": "/53105/projects/316818/site-builder",
+     "sameAsSaved": null,
+     "hostText": null
+    }
+   ],
+   "c": {
+    "sb-pa-locale": "en|.srv.local|/|Lax|2026-10-31T07:08:20.000Z",
+    "sb-pa-merchant-id": "53105|.srv.local|/|Lax|2026-10-31T07:08:20.000Z",
+    "sb-pa-project-id": "316818|.srv.local|/|Lax|2026-10-31T07:08:20.000Z"
+   },
+   "cur": 316818
+  },
+  {
+   "label": "back",
+   "url": "chrome-error://chromewebdata/",
+   "r": {
+    "count": -1
+   },
+   "c": {
+    "sb-pa-locale": "en|.srv.local|/|Lax|2026-10-31T07:08:36.000Z",
+    "sb-pa-merchant-id": "53105|.srv.local|/|Lax|2026-10-31T07:08:36.000Z",
+    "sb-pa-project-id": "317869|.srv.local|/|Lax|2026-10-31T07:08:36.000Z"
+   },
+   "cur": {
+    "error": "no react root"
+   }
+  }
+ ],
+ "blockedWrites": [
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+  },
+  {
+   "method": "GET",
+   "url": "https://accounts-sdk-skeleton.nl-k8s-stage.srv.local/for/web-games/account/logout"
+  }
+ ]
+}

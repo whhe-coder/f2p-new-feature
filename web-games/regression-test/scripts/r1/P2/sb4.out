@@ -1,0 +1,80 @@
+{
+ "at": "2026-10-21T07:14:44.701Z",
+ "steps": [
+  {
+   "label": "full 316818",
+   "t": 23580,
+   "r": {
+    "count": 1,
+    "key": null,
+    "projectId": "316818",
+    "rootURL": "/53105/projects/316818/site-builder",
+    "sameAsSaved": null,
+    "hostText": "Websites Build and publish your game's landing page, multi-page website or storefront, free of charge. Use Site Builder "
+   }
+  },
+  {
+   "label": "nav 317869",
+   "poll": [
+    {
+     "t": 24020,
+     "count": 1,
+     "key": null,
+     "projectId": "317869",
+     "rootURL": "/53105/projects/317869/site-builder",
+     "sameAsSaved": true,
+     "hostText": ""
+    }
+   ],
+   "cur": 317869
+  }
+ ],
+ "nav": [
+  {
+   "t": 18,
+   "u": "b-games/account/53105/projects/316818/site-builder"
+  }
+ ],
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  }
+ ]
+}

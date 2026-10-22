@@ -1,0 +1,2 @@
+const {chromium} = require('/Users/wenhaohe/repo/web-games-account/e2e/node_modules/@playwright/test');
+(async () => { const t = Date.now(); try { const b = await chromium.connectOverCDP('http://127.0.0.1:9333', {timeout: 90000}); console.log('connected', Date.now() - t, b.contexts().length, b.contexts()[0].pages().length); process.exit(0);} catch (e) { console.log('fail', Date.now() - t, e.message.slice(0, 200)); process.exit(1);} })();

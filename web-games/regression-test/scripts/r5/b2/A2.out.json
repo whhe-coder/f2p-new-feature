@@ -1,0 +1,132 @@
+{
+ "at": "2026-10-22T02:14:15.514Z",
+ "at600ms": {
+  "at": "2026-10-22T02:14:07.421Z",
+  "userToken": false,
+  "user": false,
+  "path": "/for/web-games/account/53105/dashboard",
+  "loader": true,
+  "iframe": false,
+  "toasts": [],
+  "balance": null,
+  "topbarUser": false,
+  "bodyLen": 240
+ },
+ "cookieBeforeLogout": [
+  "gc-pa-v4-token@accounts-sdk-skeleton.nl-k8s-stage.srv.local httpOnly=false",
+  "pa-v4-token@.srv.local httpOnly=true"
+ ],
+ "after": {
+  "at": "2026-10-22T02:14:13.684Z",
+  "userToken": false,
+  "user": false,
+  "path": "/for/web-games/account/forbidden",
+  "loader": false,
+  "iframe": false,
+  "toasts": [],
+  "balance": null,
+  "topbarUser": false,
+  "bodyLen": 101
+ },
+ "mockHits": [
+  "02:14:06.528 privileges GET /api/account/platform/53105/privileges auth=true -> 401"
+ ],
+ "logout": [
+  "02:14:08.600 {host}/for/web-games/account/logout main=true"
+ ],
+ "logoutCount": 1,
+ "delayMs": 2072,
+ "tokenPreviews": [],
+ "authLogCount": 1,
+ "authLogShape": {
+  "keys": [
+   "url",
+   "method",
+   "baseURL",
+   "hasToken",
+   "tokenLength",
+   "accountId"
+  ],
+  "tokenLength": 2596,
+  "anyValueLooksLikeJwt": false
+ },
+ "console": [
+  {
+   "at": "2026-10-22T02:14:06.559Z",
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  }
+ ],
+ "pageErrors": [
+  {
+   "at": "2026-10-22T02:14:06.571Z",
+   "text": "Request failed with status code 401"
+  }
+ ],
+ "navs": [
+  "02:14:03.222 request  {host}/for/web-games/account/53105/dashboard",
+  "02:14:03.598 framenavigated  {host}/for/web-games/account/53105/dashboard",
+  "02:14:08.600 request  {host}/for/web-games/account/logout",
+  "02:14:08.602 response 204 {host}/for/web-games/account/logout",
+  "02:14:08.602 failed net::ERR_ABORTED {host}/for/web-games/account/logout",
+  "02:14:10.693 framenavigated  {host}/for/web-games/account/forbidden",
+  "02:14:13.716 request  {host}/for/web-games/account/53105/dashboard",
+  "02:14:14.107 framenavigated  {host}/for/web-games/account/53105/dashboard"
+ ],
+ "fresh": {
+  "at": "2026-10-22T02:14:15.513Z",
+  "url": "{host}/for/web-games/account/53105/dashboard",
+  "userToken": true,
+  "user": false
+ },
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  }
+ ]
+}

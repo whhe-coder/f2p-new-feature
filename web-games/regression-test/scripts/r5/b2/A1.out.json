@@ -1,0 +1,150 @@
+{
+ "at": "2026-10-22T02:13:47.258Z",
+ "at0": {
+  "at": "2026-10-22T02:13:36.934Z",
+  "userToken": true,
+  "user": true,
+  "path": "/for/web-games/account/53105/dashboard",
+  "loader": true,
+  "iframe": false,
+  "toasts": [],
+  "balance": null,
+  "topbarUser": true,
+  "bodyLen": 366
+ },
+ "after": {
+  "at": "2026-10-22T02:13:43.953Z",
+  "userToken": true,
+  "user": true,
+  "path": "/for/web-games/account/53105/dashboard",
+  "loader": false,
+  "iframe": false,
+  "toasts": [],
+  "balance": "—",
+  "topbarUser": true,
+  "bodyLen": 1134
+ },
+ "httpOnlyTokenCookie": true,
+ "mockHits": [
+  "02:13:36.768 balance GET /mapi/merchant/current/merchants/53105/analytics/metrics/balance auth=true -> 401",
+  "02:13:43.082 balance GET /mapi/merchant/current/merchants/53105/analytics/metrics/balance auth=true -> 401"
+ ],
+ "logout": [
+  "02:13:38.811 {host}/for/web-games/account/logout main=true"
+ ],
+ "logoutCount": 1,
+ "delayMs": 2043,
+ "tokenPreviews": [
+  {
+   "at": "2026-10-22T02:13:36.778Z",
+   "keys": [
+    "status",
+    "error",
+    "code",
+    "url",
+    "method",
+    "hasToken",
+    "tokenPreview"
+   ],
+   "url": "/mapi/merchant/current/merchants/53105/analytics/metrics/balance",
+   "status": 401,
+   "hasToken": true,
+   "printed": true,
+   "chars": 20,
+   "format": "eyJ… (base64url JWT header)",
+   "ellipsis": true
+  }
+ ],
+ "authLogCount": 2,
+ "authLogShape": {
+  "keys": [
+   "url",
+   "method",
+   "baseURL",
+   "hasToken",
+   "tokenLength",
+   "accountId"
+  ],
+  "tokenLength": 2596,
+  "anyValueLooksLikeJwt": false
+ },
+ "console": [
+  {
+   "at": "2026-10-22T02:13:36.777Z",
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+   "at": "2026-10-22T02:13:36.781Z",
+   "type": "error",
+   "text": "[Gateway Auth] Token validation failed {status: 401, error: R5 mock 401, code: 401, url: <long>, method: get}"
+  },
+  {
+   "at": "2026-10-22T02:13:43.085Z",
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  }
+ ],
+ "pageErrors": [],
+ "navs": [
+  "02:13:32.943 request  {host}/for/web-games/account/53105/dashboard",
+  "02:13:33.358 framenavigated  {host}/for/web-games/account/53105/dashboard",
+  "02:13:38.811 request  {host}/for/web-games/account/logout",
+  "02:13:38.813 response 204 {host}/for/web-games/account/logout",
+  "02:13:38.813 failed net::ERR_ABORTED {host}/for/web-games/account/logout",
+  "02:13:43.986 request  {host}/for/web-games/account/53105/dashboard",
+  "02:13:45.499 framenavigated  {host}/for/web-games/account/53105/dashboard"
+ ],
+ "fresh": {
+  "at": "2026-10-22T02:13:47.257Z",
+  "url": "{host}/for/web-games/account/53105/dashboard",
+  "userToken": true,
+  "user": false
+ },
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  }
+ ]
+}

@@ -1,0 +1,1153 @@
+{
+ "at": "2026-10-21T10:06:39.906Z",
+ "ready": {
+  "A": {
+   "userToken": true,
+   "user": true
+  },
+  "B": {
+   "userToken": true,
+   "user": true
+  },
+  "at": "2026-10-21T10:05:58.305Z"
+ },
+ "cookiesBefore": [
+  {
+   "name": "_dd_s_v2",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-10-21T10:05:48.101Z"
+  },
+  {
+   "name": "_dd_s",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Strict",
+   "expires": "2027-10-21T07:21:47.000Z"
+  },
+  {
+   "name": "_dd_s",
+   "domain": "chat.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Strict",
+   "expires": "2027-10-21T10:05:56.000Z"
+  },
+  {
+   "name": "_fbp",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-01-19T10:05:52.000Z"
+  },
+  {
+   "name": "_ga_HYB8JQ4M4V",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T06:29:09.027Z"
+  },
+  {
+   "name": "_ga",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T06:28:53.577Z"
+  },
+  {
+   "name": "_gcl_au",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-01-19T05:58:45.000Z"
+  },
+  {
+   "name": "_mm_uid_1004",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T07:18:11.047Z"
+  },
+  {
+   "name": "_mm_uid_1004",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "None",
+   "expires": "2027-11-25T06:47:27.000Z"
+  },
+  {
+   "name": "_mm_uid_3002",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T10:04:55.000Z"
+  },
+  {
+   "name": "_mm_uid_300402",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "None",
+   "expires": "2027-11-25T07:17:26.000Z"
+  },
+  {
+   "name": "_mm_uid_900023",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T10:05:49.713Z"
+  },
+  {
+   "name": "_mm_vid_1004",
+   "domain": ".accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "None",
+   "expires": "2026-10-21T10:31:44.000Z"
+  },
+  {
+   "name": "_mm_vid_3002",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-21T10:34:55.000Z"
+  },
+  {
+   "name": "_mm_vid_900023",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-21T10:35:49.713Z"
+  },
+  {
+   "name": "_rdt_em",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-01-19T10:05:49.000Z"
+  },
+  {
+   "name": "_rdt_uuid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-01-19T10:05:49.000Z"
+  },
+  {
+   "name": "_twpid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-11-15T05:55:14.255Z"
+  },
+  {
+   "name": "_twsid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-11-15T10:05:50.101Z"
+  },
+  {
+   "name": "account-platform-site-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T10:05:48.000Z"
+  },
+  {
+   "name": "corp_site_region",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T05:55:11.000Z"
+  },
+  {
+   "name": "gc-pa-locale",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gc-pa-merchant-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gc-pa-project-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gc-pa-v4-token",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gdpr-consent",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-10-21T05:58:44.000Z"
+  },
+  {
+   "name": "network-pa-locale",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "network-pa-merchant-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "network-pa-project-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "pa-locale",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "pa-locale",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-10-21T10:05:49.000Z"
+  },
+  {
+   "name": "pa-merchant-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "pa-v4-token",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": true,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T05:58:33.008Z"
+  },
+  {
+   "name": "sb-pa-locale",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T07:21:42.000Z"
+  },
+  {
+   "name": "sb-pa-merchant-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T07:21:42.000Z"
+  },
+  {
+   "name": "sb-pa-project-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T07:21:42.000Z"
+  },
+  {
+   "name": "session",
+   "domain": "merchant-api-test.srv.local",
+   "path": "/merchant",
+   "httpOnly": true,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "2026-10-22T06:14:32.697Z"
+  },
+  {
+   "name": "xsollauid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T10:05:48.001Z"
+  }
+ ],
+ "clickAt": "2026-10-21T10:05:58.389Z",
+ "A_landing": {
+  "url": "{host}/for/web-games/account/login",
+  "hasQuery": false,
+  "title": "Web Games",
+  "text": "Web Games | ACCT | WEB-04 | Web Games | Sign in | Sign up | Email | Password | Sign in | Forgot password? | OR | Are you a gamer with a payment issue? | Contact gamer support | ● live"
+ },
+ "A_navs": [
+  "10:05:58.777 request  {host}/for/web-games/account/logout",
+  "10:06:00.546 response 302 {host}/for/web-games/account/logout",
+  "10:06:00.546 request  {host}/for/web-games/account/login",
+  "10:06:00.866 response 200 {host}/for/web-games/account/login",
+  "10:06:00.887 framenavigated  {host}/for/web-games/account/login"
+ ],
+ "A_requests": [
+  {
+   "at": "2026-10-21T10:05:58.534Z",
+   "m": "GET",
+   "type": "fetch",
+   "url": "https://chat.nl-k8s-stage.srv.local/communication-hub/widget/locales/en.json?…"
+  },
+  {
+   "at": "2026-10-21T10:05:58.560Z",
+   "m": "GET",
+   "type": "document",
+   "url": "https://chat.nl-k8s-stage.srv.local/communication-hub/widget"
+  },
+  {
+   "at": "2026-10-21T10:05:58.561Z",
+   "m": "POST",
+   "type": "fetch",
+   "url": "https://browser-intake-us5-datadoghq.com/api/v2/rum?…"
+  },
+  {
+   "at": "2026-10-21T10:05:58.736Z",
+   "m": "POST",
+   "type": "fetch",
+   "url": "https://m6-211026f8a25b42c08fc190458268b30e.ecs.us-east-2.on.aws/events?…"
+  },
+  {
+   "at": "2026-10-21T10:05:58.756Z",
+   "m": "GET",
+   "type": "image",
+   "url": "https://www.facebook.com/tr/?…"
+  },
+  {
+   "at": "2026-10-21T10:05:58.757Z",
+   "m": "POST",
+   "type": "ping",
+   "url": "https://xmts-global-api.nl-k8s-stage.srv.local/hit"
+  },
+  {
+   "at": "2026-10-21T10:05:58.760Z",
+   "m": "POST",
+   "type": "ping",
+   "url": "https://browser-intake-us5-datadoghq.com/api/v2/rum?…"
+  },
+  {
+   "at": "2026-10-21T10:05:58.777Z",
+   "m": "GET",
+   "type": "document",
+   "url": "{host}/for/web-games/account/logout"
+  },
+  {
+   "at": "2026-10-21T10:05:58.791Z",
+   "m": "POST",
+   "type": "document",
+   "url": "https://www.facebook.com/tr/"
+  },
+  {
+   "at": "2026-10-21T10:05:58.792Z",
+   "m": "POST",
+   "type": "fetch",
+   "url": "{GW}/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "at": "2026-10-21T10:05:58.792Z",
+   "m": "POST",
+   "type": "fetch",
+   "url": "https://px.ads.linkedin.com/wa/?…"
+  },
+  {
+   "at": "2026-10-21T10:05:58.965Z",
+   "status": 200,
+   "url": "https://www.facebook.com/tr/"
+  },
+  {
+   "at": "2026-10-21T10:06:00.539Z",
+   "status": 200,
+   "url": "https://chat.nl-k8s-stage.srv.local/communication-hub/widget"
+  },
+  {
+   "at": "2026-10-21T10:06:00.546Z",
+   "status": 302,
+   "url": "{host}/for/web-games/account/logout",
+   "location": "/for/web-games/account/login"
+  },
+  {
+   "at": "2026-10-21T10:06:00.546Z",
+   "m": "GET",
+   "type": "document",
+   "url": "{host}/for/web-games/account/login"
+  },
+  {
+   "at": "2026-10-21T10:06:00.548Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://chat.nl-k8s-stage.srv.local/communication-hub/widget/livechat-widget.1bf3a52f7637ab56201f.js"
+  },
+  {
+   "at": "2026-10-21T10:06:00.643Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://xaa-widgets.nl-k8s-stage.srv.local/mf/126.19bd816295178633b2ee.js"
+  },
+  {
+   "at": "2026-10-21T10:06:00.643Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://xaa-widgets.nl-k8s-stage.srv.local/mf/971.657ae58eddf466601b32.js"
+  },
+  {
+   "at": "2026-10-21T10:06:00.867Z",
+   "status": 200,
+   "url": "{host}/for/web-games/account/login"
+  },
+  {
+   "at": "2026-10-21T10:06:00.895Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://cdn.xsolla.<long>.28e464d50869ff92d684.js"
+  },
+  {
+   "at": "2026-10-21T10:06:00.895Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://cdn.xsolla.<long>.e6b8c0da0fd32ee6e09b.js"
+  },
+  {
+   "at": "2026-10-21T10:06:02.210Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://cdn.xsolla.<long>.4fae9df1e2cb2232edf8.js"
+  },
+  {
+   "at": "2026-10-21T10:06:02.211Z",
+   "m": "GET",
+   "type": "script",
+   "url": "chrome-extension://bfogiafebfohielmmehodmfbbebbbpei/javascript/20.js"
+  },
+  {
+   "at": "2026-10-21T10:06:02.212Z",
+   "m": "GET",
+   "type": "script",
+   "url": "chrome-extension://bfogiafebfohielmmehodmfbbebbbpei/javascript/21.js"
+  },
+  {
+   "at": "2026-10-21T10:06:02.431Z",
+   "m": "GET",
+   "type": "xhr",
+   "url": "{GW}/api/v1/modules"
+  },
+  {
+   "at": "2026-10-21T10:06:02.911Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://cdn.xsolla.<long>.77dbf3f12cd21539994e.js"
+  },
+  {
+   "at": "2026-10-21T10:06:03.321Z",
+   "m": "GET",
+   "type": "fetch",
+   "url": "{host}/for/web-games/account/server/token"
+  },
+  {
+   "at": "2026-10-21T10:06:03.321Z",
+   "m": "PUT",
+   "type": "xhr",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "at": "2026-10-21T10:06:03.392Z",
+   "m": "GET",
+   "type": "image",
+   "url": "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"
+  },
+  {
+   "at": "2026-10-21T10:06:03.392Z",
+   "m": "GET",
+   "type": "fetch",
+   "url": "{host}/for/web-games/account/server/token"
+  },
+  {
+   "at": "2026-10-21T10:06:03.393Z",
+   "m": "PUT",
+   "type": "xhr",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "at": "2026-10-21T10:06:03.394Z",
+   "m": "GET",
+   "type": "xhr",
+   "url": "{GW}/api/v1/sub_sites"
+  },
+  {
+   "at": "2026-10-21T10:06:03.404Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://xsolla.com/metrics/gtm.js?…"
+  },
+  {
+   "at": "2026-10-21T10:06:03.411Z",
+   "m": "PUT",
+   "type": "xhr",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "at": "2026-10-21T10:06:03.412Z",
+   "m": "PUT",
+   "type": "xhr",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "at": "2026-10-21T10:06:03.497Z",
+   "m": "POST",
+   "type": "fetch",
+   "url": "https://browser-intake-us5-datadoghq.com/api/v2/rum?…"
+  },
+  {
+   "at": "2026-10-21T10:06:03.868Z",
+   "m": "POST",
+   "type": "ping",
+   "url": "https://xmts-global-api.nl-k8s-stage.srv.local/hit"
+  },
+  {
+   "at": "2026-10-21T10:06:04.658Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://xsolla.com/metrics/gtag/js?…"
+  },
+  {
+   "at": "2026-10-21T10:06:04.661Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://xsolla.com/metrics/gtag/js?…"
+  },
+  {
+   "at": "2026-10-21T10:06:04.664Z",
+   "m": "GET",
+   "type": "script",
+   "url": "https://snap.licdn.com/li.lms-analytics/insight.min.js"
+  }
+ ],
+ "cookiesAfter": [
+  {
+   "name": "_dd_s_v2",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-10-21T10:06:09.955Z"
+  },
+  {
+   "name": "_dd_s",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Strict",
+   "expires": "2027-10-21T07:21:47.000Z"
+  },
+  {
+   "name": "_dd_s",
+   "domain": "chat.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Strict",
+   "expires": "2027-10-21T10:06:00.000Z"
+  },
+  {
+   "name": "_fbp",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-01-19T10:06:06.000Z"
+  },
+  {
+   "name": "_ga_HYB8JQ4M4V",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T06:29:09.027Z"
+  },
+  {
+   "name": "_ga",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T06:28:53.577Z"
+  },
+  {
+   "name": "_gcl_au",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-01-19T05:58:45.000Z"
+  },
+  {
+   "name": "_mm_uid_1004",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T07:18:11.047Z"
+  },
+  {
+   "name": "_mm_uid_1004",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "None",
+   "expires": "2027-11-25T06:47:27.000Z"
+  },
+  {
+   "name": "_mm_uid_3002",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T10:06:01.000Z"
+  },
+  {
+   "name": "_mm_uid_300402",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "None",
+   "expires": "2027-11-25T07:17:26.000Z"
+  },
+  {
+   "name": "_mm_uid_900023",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T10:06:09.956Z"
+  },
+  {
+   "name": "_mm_vid_1004",
+   "domain": ".accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "None",
+   "expires": "2026-10-21T10:31:44.000Z"
+  },
+  {
+   "name": "_mm_vid_3002",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-21T10:36:01.000Z"
+  },
+  {
+   "name": "_mm_vid_900023",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-21T10:36:09.957Z"
+  },
+  {
+   "name": "_rdt_em",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-01-19T10:06:04.000Z"
+  },
+  {
+   "name": "_rdt_uuid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-01-19T10:06:04.000Z"
+  },
+  {
+   "name": "_twpid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-11-15T05:55:14.255Z"
+  },
+  {
+   "name": "_twsid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Strict",
+   "expires": "2027-11-15T10:06:05.363Z"
+  },
+  {
+   "name": "account-platform-site-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T10:06:03.000Z"
+  },
+  {
+   "name": "corp_site_region",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T05:55:11.000Z"
+  },
+  {
+   "name": "gc-pa-locale",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gc-pa-merchant-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gc-pa-project-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gc-pa-v4-token",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "gdpr-consent",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-10-21T05:58:44.000Z"
+  },
+  {
+   "name": "network-pa-locale",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "network-pa-merchant-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "network-pa-project-id",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "pa-locale",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "session"
+  },
+  {
+   "name": "pa-locale",
+   "domain": "accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2027-10-21T10:06:03.000Z"
+  },
+  {
+   "name": "sb-pa-locale",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T07:21:42.000Z"
+  },
+  {
+   "name": "sb-pa-merchant-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T07:21:42.000Z"
+  },
+  {
+   "name": "sb-pa-project-id",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": false,
+   "sameSite": "Lax",
+   "expires": "2026-10-31T07:21:42.000Z"
+  },
+  {
+   "name": "session",
+   "domain": "merchant-api-test.srv.local",
+   "path": "/merchant",
+   "httpOnly": true,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "2026-10-22T06:14:32.697Z"
+  },
+  {
+   "name": "xsollauid",
+   "domain": ".srv.local",
+   "path": "/",
+   "httpOnly": false,
+   "secure": true,
+   "sameSite": "Lax",
+   "expires": "2027-11-25T10:06:03.308Z"
+  }
+ ],
+ "B_before": {
+  "url": "{host}/for/web-games/account/53105/dashboard",
+  "userToken": true,
+  "user": true
+ },
+ "B_navAt": "2026-10-21T10:06:09.961Z",
+ "B_after": {
+  "url": "{host}/for/web-games/account/53105/projects",
+  "userToken": true,
+  "user": true
+ },
+ "B_gw": [
+  "10:06:10.872 GET 200 /mapi/merchant/merchants/53105/project-tags",
+  "10:06:14.410 GET 200 /mapi/merchant/merchants/53105/projects/paged/lite"
+ ],
+ "B_navs": [
+  "10:06:09.964 framenavigated  {host}/for/web-games/account/53105/projects"
+ ],
+ "B_console": [],
+ "B_tokenPreviews": [],
+ "B_reload": {
+  "url": "{host}/for/web-games/account/login",
+  "navs": [
+   "10:06:19.029 request  {host}/for/web-games/account/53105/projects",
+   "10:06:19.340 response 302 {host}/for/web-games/account/53105/projects",
+   "10:06:19.340 request  {host}/for/web-games/account/login",
+   "10:06:19.604 response 200 {host}/for/web-games/account/login",
+   "10:06:19.632 framenavigated  {host}/for/web-games/account/login"
+  ]
+ },
+ "A_back": "{host}/for/web-games/account/login",
+ "A_deeplink": "{host}/for/web-games/account/login",
+ "cookiesEnd": [
+  "_dd_s_v2@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "_dd_s@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "_dd_s@chat.nl-k8s-stage.srv.local",
+  "_fbp@.srv.local",
+  "_ga_HYB8JQ4M4V@.srv.local",
+  "_ga@.srv.local",
+  "_gcl_au@.srv.local",
+  "_mm_uid_1004@.srv.local",
+  "_mm_uid_1004@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "_mm_uid_3002@.srv.local",
+  "_mm_uid_300402@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "_mm_uid_900023@.srv.local",
+  "_mm_vid_1004@.accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "_mm_vid_3002@.srv.local",
+  "_mm_vid_900023@.srv.local",
+  "_rdt_em@.srv.local",
+  "_rdt_uuid@.srv.local",
+  "_twpid@.srv.local",
+  "_twsid@.srv.local",
+  "account-platform-site-id@.srv.local",
+  "corp_site_region@.srv.local",
+  "gc-pa-locale@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "gc-pa-merchant-id@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "gc-pa-project-id@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "gc-pa-v4-token@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "gdpr-consent@.srv.local",
+  "network-pa-locale@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "network-pa-merchant-id@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "network-pa-project-id@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "pa-locale@.srv.local",
+  "pa-locale@accounts-sdk-skeleton.nl-k8s-stage.srv.local",
+  "pa-original-url@.srv.local",
+  "sb-pa-locale@.srv.local",
+  "sb-pa-merchant-id@.srv.local",
+  "sb-pa-project-id@.srv.local",
+  "session@merchant-api-test.srv.local",
+  "xsollauid@.srv.local"
+ ],
+ "closedB": true,
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  }
+ ],
+ "allowedWrites": [
+  {
+   "method": "GET",
+   "url": "https://accounts-sdk-skeleton.nl-k8s-stage.srv.local/for/web-games/account/logout"
+  }
+ ]
+}

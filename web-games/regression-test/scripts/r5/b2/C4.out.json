@@ -1,0 +1,176 @@
+{
+ "at": "2026-10-22T02:15:17.284Z",
+ "patched": [
+  {
+   "at": "2026-10-22T02:15:09.860Z",
+   "from": {
+    "ipn_enabled": false,
+    "payment_url": ""
+   }
+  }
+ ],
+ "found": true,
+ "clicked": null,
+ "testingText": "Testing | Store | Payments | Subscriptions | Dispute",
+ "hit": true,
+ "at0": {
+  "at": "2026-10-22T02:15:10.897Z",
+  "userToken": true,
+  "user": true,
+  "path": "/for/web-games/account/53105/projects/317869/edit/webhooks/dispute",
+  "loader": false,
+  "iframe": false,
+  "toasts": [],
+  "balance": null,
+  "topbarUser": true,
+  "bodyLen": 2264
+ },
+ "after": {
+  "at": "2026-10-22T02:15:15.157Z",
+  "userToken": true,
+  "user": true,
+  "path": "/for/web-games/account/53105/projects/317869/edit/webhooks/dispute",
+  "loader": false,
+  "iframe": false,
+  "toasts": [],
+  "balance": null,
+  "topbarUser": true,
+  "bodyLen": 2395
+ },
+ "mockHits": [
+  "02:15:09.882 currency GET /mapi/merchant/current/currency/list auth=true -> 401"
+ ],
+ "logout": [
+  "02:15:11.964 {host}/for/web-games/account/logout main=true"
+ ],
+ "logoutCount": 1,
+ "delayMs": 2082,
+ "tokenPreviews": [
+  {
+   "at": "2026-10-22T02:15:09.883Z",
+   "keys": [
+    "status",
+    "error",
+    "code",
+    "url",
+    "method",
+    "hasToken",
+    "tokenPreview"
+   ],
+   "url": "/mapi/merchant/current/currency/list",
+   "status": 401,
+   "hasToken": true,
+   "printed": true,
+   "chars": 20,
+   "format": "eyJ… (base64url JWT header)",
+   "ellipsis": true
+  }
+ ],
+ "authLogCount": 1,
+ "authLogShape": {
+  "keys": [
+   "url",
+   "method",
+   "baseURL",
+   "hasToken",
+   "tokenLength",
+   "accountId"
+  ],
+  "tokenLength": 2596,
+  "anyValueLooksLikeJwt": false
+ },
+ "console": [
+  {
+   "at": "2026-10-22T02:15:09.883Z",
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+   "at": "2026-10-22T02:15:09.886Z",
+   "type": "error",
+   "text": "[Gateway Auth] Token validation failed {status: 401, error: R5 mock 401, code: 401, url: /mapi/merchant/current/currency/list, method: get}"
+  }
+ ],
+ "pageErrors": [],
+ "navs": [
+  "02:14:59.780 request  https://accounts-sdk-skeleton.nl-k8s-stage.srv.<long>",
+  "02:15:00.113 framenavigated  https://accounts-sdk-skeleton.nl-k8s-stage.srv.<long>",
+  "02:15:11.964 request  {host}/for/web-games/account/logout",
+  "02:15:11.966 response 204 {host}/for/web-games/account/logout",
+  "02:15:11.966 failed net::ERR_ABORTED {host}/for/web-games/account/logout",
+  "02:15:15.184 request  {host}/for/web-games/account/53105/dashboard",
+  "02:15:15.523 framenavigated  {host}/for/web-games/account/53105/dashboard"
+ ],
+ "fresh": {
+  "at": "2026-10-22T02:15:17.284Z",
+  "url": "{host}/for/web-games/account/53105/dashboard",
+  "userToken": true,
+  "user": false
+ },
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  }
+ ]
+}

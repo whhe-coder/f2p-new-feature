@@ -1,0 +1,217 @@
+{
+ "at": "2026-10-22T02:14:59.393Z",
+ "s": {
+  "e404": {
+   "at": "2026-10-22T02:14:40.487Z",
+   "userToken": true,
+   "user": true,
+   "path": "/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2",
+   "loader": true,
+   "iframe": false,
+   "toasts": [],
+   "balance": null,
+   "topbarUser": true,
+   "bodyLen": 366,
+   "logoutSoFar": 0
+  },
+  "e500": {
+   "at": "2026-10-22T02:14:44.778Z",
+   "userToken": true,
+   "user": true,
+   "path": "/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=1",
+   "loader": true,
+   "iframe": false,
+   "toasts": [],
+   "balance": null,
+   "topbarUser": true,
+   "bodyLen": 512,
+   "logoutSoFar": 0
+  },
+  "blocked": {
+   "at": "2026-10-22T02:14:49.067Z",
+   "userToken": true,
+   "user": true,
+   "path": "/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=2",
+   "loader": true,
+   "iframe": false,
+   "toasts": [],
+   "balance": null,
+   "topbarUser": true,
+   "bodyLen": 1021,
+   "logoutSoFar": 0
+  },
+  "e401": {
+   "at": "2026-10-22T02:14:54.353Z",
+   "userToken": true,
+   "user": true,
+   "path": "/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=3",
+   "loader": true,
+   "iframe": false,
+   "toasts": [],
+   "balance": null,
+   "topbarUser": true,
+   "bodyLen": 1021,
+   "logoutSoFar": 1
+  },
+  "after401": {
+   "at": "2026-10-22T02:14:57.362Z",
+   "userToken": true,
+   "user": true,
+   "path": "/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=3",
+   "loader": true,
+   "iframe": false,
+   "toasts": [],
+   "balance": null,
+   "topbarUser": true,
+   "bodyLen": 1021
+  }
+ },
+ "mockHits": [
+  "02:14:36.350 card GET /mapi/merchant/merchants/53105/salescards/9001 auth=true -> 404",
+  "02:14:40.555 card GET /mapi/merchant/merchants/53105/salescards/9001 auth=true -> 500",
+  "02:14:44.843 card GET /mapi/merchant/merchants/53105/salescards/9001 auth=true -> abort",
+  "02:14:50.129 card GET /mapi/merchant/merchants/53105/salescards/9001 auth=true -> 401"
+ ],
+ "logout": [
+  "02:14:52.170 {host}/for/web-games/account/logout main=true"
+ ],
+ "logoutCount": 1,
+ "delayMs": 2041,
+ "tokenPreviews": [
+  {
+   "at": "2026-10-22T02:14:50.132Z",
+   "keys": [
+    "status",
+    "error",
+    "code",
+    "url",
+    "method",
+    "hasToken",
+    "tokenPreview"
+   ],
+   "url": "/mapi/merchant/merchants/53105/salescards/9001",
+   "status": 401,
+   "hasToken": true,
+   "printed": true,
+   "chars": 20,
+   "format": "eyJ… (base64url JWT header)",
+   "ellipsis": true
+  }
+ ],
+ "authLogCount": 4,
+ "authLogShape": {
+  "keys": [
+   "url",
+   "method",
+   "baseURL",
+   "hasToken",
+   "tokenLength",
+   "accountId"
+  ],
+  "tokenLength": 2596,
+  "anyValueLooksLikeJwt": false
+ },
+ "console": [
+  {
+   "at": "2026-10-22T02:14:40.556Z",
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  },
+  {
+   "at": "2026-10-22T02:14:44.845Z",
+   "type": "error",
+   "text": "Failed to load resource: net::ERR_FAILED"
+  },
+  {
+   "at": "2026-10-22T02:14:50.131Z",
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+   "at": "2026-10-22T02:14:50.133Z",
+   "type": "error",
+   "text": "[Gateway Auth] Token validation failed {status: 401, error: R5 mock 401, code: 401, url: /mapi/merchant/merchants/53105/salescards/9001, method: get}"
+  }
+ ],
+ "pageErrors": [],
+ "navs": [
+  "02:14:33.544 request  {host}/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2",
+  "02:14:33.892 framenavigated  {host}/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2",
+  "02:14:40.494 framenavigated  {host}/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=1",
+  "02:14:44.783 framenavigated  {host}/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=2",
+  "02:14:50.073 framenavigated  {host}/for/web-games/account/53105/frame/documentation?upsell-card-id=9001&upsell-step-id=2&r=3",
+  "02:14:52.170 request  {host}/for/web-games/account/logout",
+  "02:14:52.172 response 204 {host}/for/web-games/account/logout",
+  "02:14:52.172 failed net::ERR_ABORTED {host}/for/web-games/account/logout",
+  "02:14:57.391 request  {host}/for/web-games/account/53105/dashboard",
+  "02:14:57.757 framenavigated  {host}/for/web-games/account/53105/dashboard"
+ ],
+ "fresh": {
+  "at": "2026-10-22T02:14:59.392Z",
+  "url": "{host}/for/web-games/account/53105/dashboard",
+  "userToken": true,
+  "user": false
+ },
+ "blockedWrites": [
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "POST",
+   "url": "https://account-platform-gateway.nl-k8s-stage.srv.local/xfe-api/accesslogs/merchants/report/53105"
+  },
+  {
+   "method": "PATCH",
+   "url": "https://chat.nl-k8s-stage.srv.<long>"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  },
+  {
+   "method": "PUT",
+   "url": "https://consent-api.xsolla.com/v2/consent"
+  }
+ ]
+}

@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | Track | T5 注册·MCP 登录（§4.11 REG、§4.12 MCP、§5/§2.4 outside 路由与 SDK guard 效果表、§7 相关 endpoint、AC-06、AC-09、T-01、S-27/S-28/S-33、U-01/U-03/U-13 相关部分） |
-| 基于 spec 版本 | 0.3.0（`web-games-account_reverse_spec.md`；P3 从 0.2.0 定向更新，见文末“P3 变更记录”） |
+| 基于 spec 版本 | 0.3.8（`web-games-account_reverse_spec.md`；P11 从 0.3.0 定向更新到 0.3.8，只处理 0.3.7 → 0.3.8 的 diff 中与 T5 相关的条目，见文末“P11 变更记录”；P3 从 0.2.0 定向更新，见“P3 变更记录”） |
 | 代码基线 | `master@772a320`（`git show 772a320:<path>`） |
 | SDK 基线 | 本地 `node_modules/.pnpm` 中的 `platform-shell 2.22.3`、`platform-components 4.20.3`、`platform-pages 3.25.2`、`platform-apis 2.29.2`、`platform-store 1.15.6`、`core 0.9.1`、`platform-locales 2.6.7`。版本与 spec 记录一致。源码从各包 `dist/*.mjs.map` 的 `sourcesContent` 读取 |
 | 生成日期 | 2026-10-21 |
-| 执行状态 | 本文件只基于源码阅读。用例都没有在 stage 执行过；测试也没有运行 |
+| 执行状态 | 本文件基于源码阅读写成；测试没有运行。P11：stage R1（`c1b5e37`，admin）执行了 RT-CONSENT-005/010/015（PASS 或部分通过）、RT-CONSENT-016/018（BLOCKED，只有 admin），RT-MCP-* 为 N/A；结果见 `stage-results-R1-readonly.md` |
 
 ## 0. 约定
 
@@ -151,12 +151,12 @@ sequenceDiagram
 | RT-CONSENT-010 | 已无待签时访问同意页 | A3 | 直接打开 `/legal-consent`、`/account-no-access` | 都重定向到 `/{m}` | P1 | `LegalDocumentConsentGuard/index.tsx:271-280` | — |
 | RT-CONSENT-011 | Xsolla admin 不受拦截 | A6（`user.admin`），打开 A4 的 merchant | 1. 打开 `{BASE}/{A4 m}/dashboard`。2. 打开 `/legal-consent` | 1. 直接进入，不发 `consents/status`。2. 重定向到 `/{m}` | P1 | `LegalDocumentConsentGuard/index.tsx:137-140,186-198` | — |
 | RT-CONSENT-012 | 新注册账号的 ToU 抑制（只在当前 tab 会话） | 用 RT-REG-024 选 Skip 的新账号 | 1. 同一 tab 刷新 `/{m}/dashboard`。2. 查看 sessionStorage `ba.signupLegalSuppress`。3. 关闭 tab，新 tab 登录后打开 `/{m}/dashboard` | 1. 不被拦截。2. 值为 `{m}`（注册期间先写 `pending`，进入 merchant 后改写为 merchant id）。3. 新 tab 没有该键；若后端对 Skip 后的新会话返回 `needs_acceptance`（spec [I]，U-13 未关闭），owner 被拦截到 `/legal-consent`。记录 `consents/status` 的实际返回 | P1 | OBS-REG-001（Skip for now）、OBS-REG-003、U-13；`LegalDocumentConsentGuard/index.tsx:114-127,220-222`；`pa/utils/signupLegalSuppressStorage.ts:26-56` [P3] | I14 stand-in 明确未覆盖该分支（`shellGuards.tsx` 注释） |
-| RT-CONSENT-013 | 同意状态请求失败或超时 | A4；阻断 `consents/status` | 打开 `/{m}/dashboard` | fail-open：进入 Dashboard，不拦截（失败时 items 置空）。若请求挂起，最多显示 11 秒 loading，10 秒后放行（挂起场景的复现方式**待确认**） | P2 | `LegalDocumentConsentGuard/index.tsx:41,168-173,209-211`；`ps/slices/legalDocuments.ts:92-96` | — |
+| RT-CONSENT-013 | 同意状态请求失败、迟到或挂起 | A4（owner）；A5（非 owner）。工具：DevTools 阻断请求；改写工具（Requestly / Charles）给 `consents/status` 加延迟 | 1. 阻断 `consents/status`，打开 `/{m}/dashboard`<br>2. A4：让 `consents/status` 延迟 15 s 后返回待签结果（`needs_acceptance=true`），打开 `/{m}/dashboard`，观察 0–20 s 的 URL<br>3. A5 重复第 2 步<br>4. 让请求一直挂起（延迟大于 60 s），打开 `/{m}/dashboard` | 1：fail-open，进入 Dashboard，不拦截（失败时 items 置空）。<br>2：约 10 s 时 guard 先放行，进入 Dashboard；guard **不取消**请求，15 s 时迟到的待签响应到达，owner 仍被重定向到 `/legal-consent`。<br>3：同 2，最后重定向到 `/account-no-access`。<br>4：最多显示约 10 s loading 后放行，之后一直停在 Dashboard。<br>只有请求失败（1）或一直挂起（4）时用户才一直被放行。请求本身没有超时 | P2 | OBS-REG-003、§8.2；`pc/auth/LegalDocumentConsentGuard/index.tsx:41,168-173,209-211`；`ps/slices/legalDocuments.ts:92-96` [P11] | — |
 | RT-CONSENT-014 `[stage@c1b5e37 部分适用]` | 公开路径不做同意检查 | A4 已登录 | 打开 `{MCP}`（stage@c1b5e37 跳过）、`{BASE}/verification`、`{BASE}/invite/1` | 不被重定向到 `/legal-consent`（`/login`、`/signup`、`/verification`、`/resetting`、`/registration`、`/invite` 按路径段匹配，`/login/mcp` 含 `login` 段；§2.4 SDK guard 效果表 ToU 待签一行） | P1 | OBS-REG-003、§2.4 SDK guard 效果表；`LegalDocumentConsentGuard/index.tsx:24-31,47-50,201-203` [P3] | — |
 | RT-CONSENT-015 | `/account-restricted` 文案 | A3 | 打开 `{BASE}/account-restricted` | 显示 restricted 变体文案（与 `/account-no-access` 不同） | P2 | `src/layouts/account-access/no-access/index.tsx:12-17` | `no-access/index.test.tsx`（772a320） |
 | RT-CONSENT-016 | 首次进入站点的 enter-account | A3（非 admin owner，ToU 已签）；删除 localStorage `ba.web-games.enterAccountSeen.<userId>` | 刷新 `{BASE}/{m}` | 被 replace 到 `/enter-account`；点 Enter account → `/{m}` → 首页。刷新后不再出现 | P1 | `src/layouts/account-access/enter-account/index.tsx:12-24`；`useEnterAccountGate.ts:149-176`；`pa/utils/enterAccountStorage.ts:5-22` | `enter-account/index.test.tsx`（772a320，只测按钮） |
-| RT-CONSENT-017 | enter-account 不对其他角色生效 | A5（viewer）、A6（admin），各自删除对应 localStorage 键 | 打开 `{BASE}/{m}` | 都不跳 `/enter-account` | P2 | `useEnterAccountGate.ts:150-152` | — |
-| RT-CONSENT-018 | 已看过时直接访问 `/enter-account` | A3，键已存在 | 打开 `{BASE}/enter-account` | replace 到 `/{m}` | P2 | `useEnterAccountGate.ts:125-147` | — |
+| RT-CONSENT-017 | enter-account 不对其他角色生效 | A5（viewer）、A6（admin），各自删除对应 localStorage 键 | 打开 `{BASE}/{m}` | 都不跳 `/enter-account`<br>stage 实测（R1，admin 变体）：删除键后刷新 `/{m}`，URL 为 `/{m}` → `/{m}/get-started`，没有跳 `/enter-account`，与预期一致；viewer 变体未执行 | P2 | §2.4 EnterAccountGate；§10.3 R1；`useEnterAccountGate.ts:150-152` [P11] | — |
+| RT-CONSENT-018 | 已看过时直接访问 `/enter-account` | A3，键已存在 | 打开 `{BASE}/enter-account` | replace 到 `/{m}`<br>注意：必须用非 admin owner。admin 被 gate 跳过，直接打开 `/enter-account` 会一直停在该页（stage R1：25 s 内不跳转，页面显示 “Enter Web Games account”），这不是缺陷。R1 只有 admin 账号，本用例记为 BLOCKED，待 R3 用非 admin owner 执行（U-15） | P2 | §2.4 EnterAccountGate；§10.3 R1；`useEnterAccountGate.ts:125-147` [P11] | — |
 | RT-CONSENT-019 | 未登录访问受保护的 outside 页 | 无会话 | 依次打开 `/legal-consent`、`/account-no-access`、`/enter-account`、`/forbidden` | 都跳到 `{BASE}/login`（这些路径不在免登录白名单）。跳转前原路径写入 60 秒 cookie（DevTools → Application → Cookies 查看）。60 秒内登录后是否回到原路径，记录实际结果 | P2 | §2.4 SDK guard 效果表（无 token 一行）；`pa/utils/checkDisallowedUrls.ts:4-48`；`allowed-unauthorized-urls.ts:1-15` [P3] | — |
 | RT-CONSENT-020 | `/error` 页 | 1. 无会话。2. A3 已登录，且 localStorage 中已有 `ba.web-games.enterAccountSeen.<userId>`（否则 EnterAccountGate 会把 `/error` 替换为 `/enter-account`，见 RT-CONSENT-023） | 打开 `{BASE}/error` | 1. 不跳登录；显示 “Something went wrong / An unexpected error occurred. Please try again later.” 和 NavigationLite。2. 预期（代码推断）仍显示 NavigationLite 而非完整导航：`authorized` 读 `state.user.id`，而用户数据在 `state.user.user`（**待确认**，单测对应用例为 `it.skip`） | P2 | §2.4 SDK guard 效果表；`src/layouts/error/index.tsx:7-19`；`allowed-unauthorized-urls.ts:3` [P3] | `error/index.test.tsx`（signed-in 用例 `it.skip`，772a320） |
 | RT-CONSENT-021 | 未知 outside 路径 | 1. 无会话。2. A3，localStorage 中已有 `ba.web-games.enterAccountSeen.<userId>` | 打开 `{BASE}/qa-unknown-path` | 1. 先到 `/not-found`，再被替换到 `/login`（`/not-found` 不在白名单；`/not-found` 不写入原路径 cookie）。2. 显示 not-found 页 | P2 | §2.4 SDK guard 效果表；`src/routes.tsx:162`；`src/routes/not-found.tsx:4` [P3] | e2e 注释描述了该链路（`anonymous.smoke.spec.ts:88-90`） |
@@ -224,7 +224,7 @@ sequenceDiagram
 | U 项 | 结论 | 证据 | 转成的 stage 用例 |
 |---|---|---|---|
 | U-01（RegistrationGuard 部分） | **关闭**。`registrationCompleted===false` 且不在 `/registration` → `<Redirect to="/registration">`；`registrationCompleted` 为真、有 merchant 且在 `/registration` → `/{merchantId}`；其他情况放行。guard 包住整棵路由树，包括 top-level 路由 | `pc/auth/RegistrationGuard/index.tsx:15-32`；`sh/PlatformShell.tsx:193-239` | RT-REG-003/004、RT-MCP-027 |
-| U-01（LegalDocumentConsentGuard 部分） | **关闭**。默认 `activationPath=/legal-consent`、`noAccessPath=/account-no-access`；公开路径按路径段匹配；admin 绕过；状态请求 10 秒超时或失败时放行；新注册账号在当前 tab 会话内抑制；同意后回到 `state.from` | `pc/auth/LegalDocumentConsentGuard/index.tsx:24-283`；`ps/slices/legalDocuments.ts:57-96`；`pa/utils/signupLegalSuppressStorage.ts` | RT-CONSENT-003～014 |
+| U-01（LegalDocumentConsentGuard 部分） | **关闭**。默认 `activationPath=/legal-consent`、`noAccessPath=/account-no-access`；公开路径按路径段匹配；admin 绕过；状态请求失败时放行；等待 10 秒后先放行，但不取消请求，迟到的待签响应仍会重定向（P11，spec 0.3.8 OBS-REG-003）；新注册账号在当前 tab 会话内抑制；同意后回到 `state.from` | `pc/auth/LegalDocumentConsentGuard/index.tsx:24-283`；`ps/slices/legalDocuments.ts:57-96`；`pa/utils/signupLegalSuppressStorage.ts` | RT-CONSENT-003～014 |
 | U-01（无 token 的 outside 路由部分） | **关闭（T5 范围）**。`AuthChecker`/`AuthOrchestrator` 调 `checkDisallowedUrls`：路径段命中白名单（`verification`、`error`、`signin`、`signup`、`login`、`resetting`、`invite` 等）就放行，否则跳 `/for/{site}/account/login` 并在 60 秒 cookie 中保存原路径（`/login`、`/error`、`/not-found` 不保存）。401 部分留给 T1 | `pa/utils/checkDisallowedUrls.ts`；`pa/constants/allowed-unauthorized-urls.ts:1-15`；`pc/auth/AuthChecker/index.tsx` | RT-REG-005、RT-CONSENT-019/021、RT-MCP-001 |
 | U-01（EnterAccountGate，spec 未单列） | **关闭**。只对非 admin owner、ToU 已满足、本设备未看过（localStorage `ba.{site}.enterAccountSeen.{userId}`）生效；跳过 `/login*`、`/registration`、`/legal-consent` 等前缀 | `pc/auth/EnterAccountGate/useEnterAccountGate.ts:20-188` | RT-CONSENT-016～018、RT-REG-026 |
 | U-03（注册与同意相关的 SDK HTTP 调用） | **部分关闭**。SDK 发出：`POST /api/account/platform/organization/{m}/registration/pass_survey`、`POST /api/account/platform/users/{id}/credential`、`GET /mapi/merchant/organizations/{m}/legal-documents/consents/status`、`POST …/legal-documents/consents`（每份文档一次）、`GET /mapi/merchant/legal-documents/current?type=terms|privacy`；项目创建走 SDK `createProject` → `POST {GW}/api/project/{m}/create`（P3 核对，与 spec 0.3.0 §7.2 一致）。spec 0.3.0 将 U-03 标为部分关闭。其余 SDK 调用留给 T1/T4 | `pa/apis/registration.ts:13-28`；`pa/apis/legal-document.ts:35-84`；`pa/apis/project.ts:286-301` | RT-REG-016/018/025/028/029、RT-CONSENT-007/008 |
@@ -292,18 +292,20 @@ v0.2.0 已修正 MCP 注册请求的证据位置（`oauthLogin.ts:240-261`）。
 
 废弃用例：0。在 stage@c1b5e37 上能完整执行的用例：50 条。
 
+P11：修改 3 条，没有新增或废弃，总数和优先级分布不变（P0 15 / P1 44 / P2 33，合计 92，已用脚本复核）。
+
 | spec 条目 | 覆盖用例 |
 |---|---|
 | OBS-REG-001 | RT-REG-001～029、RT-CONSENT-001/002/012 |
 | OBS-REG-002 | RT-REG-012/013 |
-| OBS-REG-003 | RT-CONSENT-003～014、022 |
+| OBS-REG-003 | RT-CONSENT-003～014、022（10 s 后先放行、迟到响应仍重定向：RT-CONSENT-013，P11） |
 | OBS-MCP-001 | RT-MCP-001、004～012、031 |
 | OBS-MCP-002 | RT-MCP-002、012～016、024 |
 | OBS-MCP-003 | RT-MCP-002、018～023、026/027 |
 | OBS-MAG-003 / OBS-AUTH-009（注册相关部分） | RT-REG-002/003 |
 | AC-06 | RT-REG-001、RT-CONSENT-001 |
 | AC-09 | RT-MCP-004～011 |
-| §2.4 SDK guard 效果表 | RT-REG-003、RT-CONSENT-014、019～023、RT-MCP-001/026/027 |
+| §2.4 SDK guard 效果表 | RT-REG-003、RT-CONSENT-014、019～023、RT-MCP-001/026/027；EnterAccountGate 跳过 admin：RT-CONSENT-017/018（P11） |
 | T-01（I13 stand-in 缺陷） | RT-REG-001、RT-CONSENT-001 |
 | S-27 / S-28 / S-33 | RT-REG-006 / RT-REG-025/028/029 / RT-REG-020 |
 | U-13 | RT-REG-018/020、RT-CONSENT-012 |
@@ -344,3 +346,15 @@ spec 0.2.0 → 0.3.0 定向更新（2026-10-21）。范围：OBS-REG-001/003、A
 | 废弃 | — | 无 |
 
 其他同步改动：头部 spec 版本与 Track；§0 新增“stage 部署版本适用性”；§2.4 说明加 stage 不适用；§4 U 项表（U-01 整体、U-03 路径、OBS-REG-003、新增 U-13、U-02/07/08 范围说明）；§5 增加 0.3.0 采纳情况表；§7 覆盖统计。
+
+## P11 变更记录（spec 0.3.8）
+
+依据：spec 0.3.7 → 0.3.8 的 diff 中与 T5 相关的条目（OBS-REG-003、§8.2、§10.3 R1 的 EnterAccountGate 行），`stage-results-R1-readonly.md`（`c1b5e37`；RT-CONSENT-005/010/015/016/018、RT-MCP-*）。本文件此前停在 0.3.0；0.3.1–0.3.7 期间的条目没有逐条回补，只在头部版本处注明。新的 S-41～S-46、U-17～U-19 都不落在 T5。修改 3 条，新增 0 条，废弃 0 条。总数 92 不变（P0 15 / P1 44 / P2 33）。
+
+| 类别 | 用例 ID | 原因 |
+|---|---|---|
+| 内容修改 | RT-CONSENT-013 | OBS-REG-003 改写：guard 等 10 s 后先放行，但不取消请求，迟到的待签响应仍会重定向（owner → `/legal-consent`，非 owner → `/account-no-access`）；只有失败或一直挂起时才一直放行。拆成 4 步，补出“挂起”的复现方式 |
+| 内容修改 | RT-CONSENT-017 | §10.3 R1：admin 变体在 stage 上与预期一致（gate 跳过 admin） |
+| 内容修改 | RT-CONSENT-018 | §10.3 R1：注明必须用非 admin owner；admin 直接打开 `/enter-account` 会停在该页，不是缺陷；R1 为 BLOCKED，待 R3（U-15） |
+
+其他改动：头部 spec 版本改为 0.3.8，执行状态补 R1；§4 U-01（LegalDocumentConsentGuard 部分）改正“10 秒超时”的说法；§7 覆盖统计补 P11 说明和落点。核对后未改：RT-CONSENT-005/010/015（R1 PASS 或部分通过，与预期一致）、RT-CONSENT-016（前置条件已要求非 admin）、RT-MCP-*（stage@c1b5e37 不适用，R1 为 N/A）。

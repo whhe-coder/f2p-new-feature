@@ -1,8 +1,8 @@
 # Reverse-Engineered Specification: web-games-account（Web Games 发行商账户 Host）
 
-> Status: draft（只读源码得出；未在运行时验证）
-> Document version: 0.3.7
-> Last updated: 2026-10-21
+> Status: draft（源码反向提取；部分结论有 stage `c1b5e37` 运行时佐证，见 §10.3）
+> Document version: 0.3.10
+> Last updated: 2026-10-22
 > Evidence snapshot:
 > - Host 代码：`web-games-account` `master` @ `772a320dc6010323957e3d536495f5a0868fada0`（commit time 2026-10-20T09:57:39Z，"Merge branch 'BIZA-524-add-v-1-contract-baselines-for-the-v-2-upgrade'"）。
 > - SDK 代码：本地 pnpm store 中与该 commit 的 `package.json` 版本完全一致的包，即 `@accounts-sdk/platform-shell 2.22.3`、`platform-apis 2.29.2`、`platform-store 1.15.6`、`platform-pages 3.25.2`、`platform-components 4.20.3`、`platform-bff 1.0.0`、`core 0.9.1`。原始源码取自各包 `dist/*.mjs.map` 的 `sourcesContent`。
@@ -24,6 +24,9 @@
 | 0.3.5 | 2026-10-21 | 合入 stage Batch C 的 C1（切换语言，已恢复）：证实 S-23，证实 S-24 的前半段；新增 S-39（语言保存返回 200 但不持久化）、S-40（`<html lang>` 不更新）、U-16；补充 OBS-I18N-002 的保存接口 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.6 | 2026-10-21 | 合入 stage Batch A2（用页面内方法补做 A3、A4）：证实 OBS-AUTH-009 的无会话规则和有会话访问 `/login` 的规则、S-22 的 BFF 一半、S-02；A5a、A5b 未执行 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
 | 0.3.7 | 2026-10-21 | 合入 A5b（Claude Code CLI，Playwright 匿名 headless 拦截 `/api/v1/modules`）：证实 OBS-BOOT-002，abort 和 500 两种失败都白屏、不进入 bootstrap；§10.3 新增 A5b 表，Batch A2 表中该行只保留 S-04 | master @ 772a320；stage `c1b5e37` 观察（`init.tsx`、`index.html` 两版相同） |
+| 0.3.8 | 2026-10-22 | 合入三份新材料（各条都已对照 772a320 与同版本 SDK 源码复核）：<br>（1）stage R1 只读批次（70+7 条）：修正 OBS-SET-001（`/profile` 有 SDK 自带的 "Back to account"）、OBS-ROUTE-008（`/select-project` 没有路由）；新增 S-41（未调用 `setupAnalyticsAxios`）、S-43、S-44、U-17、U-18；补充 §6、§7.2<br>（2）stage R5 写入批次：S-39 改为间歇性、U-16 改写；新增 S-42（登出不吊销 JWT）、S-45、S-46、U-19；证实 S-24 的后半段；S-20 去掉 [U]；OBS-ACC-002 收窄到有权限门槛的路由<br>（3）QA 执行单 §4 的源码复核：OBS-BOOT-003（缺少模块时跳过而非抛错）、OBS-AUTH-001（不内联 token 时可能循环跳转）、OBS-REG-003（10 s 后先放行，迟到的响应仍会重定向）、OBS-DASH-005（条件是 business account 数）、OBS-DASH-004（XAA 失败时的界面）；修正 4 处落在注释上的行号<br>§10.3 新增 R1、R5、QA §4 三张表 | master @ 772a320 + 同版本 SDK；stage `c1b5e37` 观察 |
+| 0.3.9 | 2026-10-22 | 修正 OBS-ACC-002 与 §10.3 R5 表：撤回“privileges 401 时 `/dashboard` 先显示 `/forbidden` 约 2 s”。依据 R5 独立 review：时间线上 `/logout` 先发起，`/forbidden` 只因测试脚本把 `/logout` mock 成 204、页面未卸载而出现。真实流程中是否短暂出现 `/forbidden` 改记为 [U]。由回归测试会话直接修改 | `stage-results-R5-writes.md` 第 46、167、186 行 |
+| 0.3.10 | 2026-10-22 | 按第五轮独立 review 修正（8 条全部核实成立，其中第 1 条和日期已在 0.3.9 修正）：<br>• OBS-AUTH-001 / §8.3 / QA 表：循环还需要 `/server/token` 也失败（会话有效时 BFF 会返回 token）<br>• R5 表：并发 401 是两个拦截器各发起一次 `/logout`<br>• Status 与 §0 证据类型：指向 §10.3 的运行时佐证<br>• S-04 收窄到有权限门槛的路由，并修正行号<br>• OBS-AUTH-008：登出时也会清除已存在的 `pa-original-url`<br>• S-39 与 U-16 去掉矛盾（浏览器 HTTP 缓存没有排除）<br>• S-41 证据路径改为 `pa:apis/analytics-instance.ts`；select-project 死分支补全行号 | master @ 772a320 + 同版本 SDK |
 
 ## 0. 阅读约定
 
@@ -34,7 +37,7 @@
   - **[I]**：基于多处观察的推断。
   - **[U]**：未知，原因是需要 backend、remote、部署环境或运行时观察。
 - **Requirement ID**：格式为 `OBS-<域>-<序号>`。被集成测试固定的条目注明 scenario ID（`I1`…`I15`、`D1`、`D2`，定义在 `src/__integration__/scenarios.ts`）。
-- **证据类型**：本文结论只来自 source reading，测试只读未执行。唯一的例外是核实路由匹配时，在本地执行过 react-router 4.3.1 的 `matchPath`。CI 结果、部署版本和浏览器行为都没有观察。
+- **证据类型**：本文结论只来自 source reading，测试只读未执行。唯一的例外是核实路由匹配时，在本地执行过 react-router 4.3.1 的 `matchPath`。CI 结果没有观察。运行时证据只来自 stage（`c1b5e37`，SDK 是更旧的补丁版本），由外部记录提供，见 §10.3；正文中写明 "stage" 的结论都受这一边界约束。
 
 ---
 
@@ -207,8 +210,9 @@ The host shall set the gateway base URL, fetch the module list (`fetchModuleList
 **OBS-BOOT-002** 模块列表失败即终止。[F] `src/init.tsx:29-31`
 If `fetchModuleList` rejects, the host shall throw `Failed to initialize application` and shall not render the app. There is no error UI and no retry; the user sees a blank page [I].
 
-**OBS-BOOT-003** MF 2.0 注册失败不阻断启动。[F] `src/mf/index.ts:23-29`
-If MF 2.0 remote registration throws, the host shall log a warning and continue booting with MF 2.0 disabled.
+**OBS-BOOT-003** MF 2.0 注册失败不阻断启动。[F] `src/mf/index.ts:23-29`、`src/mf/runtime/registerGatewayRemotes.ts:40-77`
+- If a remote cannot be derived, the host shall log `[mf-runtime] skipping remote "{name}" (module "{moduleId}"): {reason}`, skip it and throw nothing. The reasons are: module not in the gateway list, no URL for the current env, or a URL that is not `remoteEntry.js`. If every remote is skipped, `registerRemotes` is not called.
+- If the runtime itself throws (for example `registerRemotes`, or a `modules` value that is not an array), the host shall catch it, log `[mf-runtime] remote registration failed…`, and continue booting with MF 2.0 disabled.
 
 **OBS-BOOT-004** 回填 `__INITIAL_STATE__`。[F] `src/bootstrap.tsx:43-50`
 Where `window.__INITIAL_STATE__` exists, the host shall default its `projects` to `{currentID:null}` and its `user` to `{id:null,email:null}` when they are missing.
@@ -237,6 +241,12 @@ The host shall resolve the initial token in this order:
 5. `null`.
 
 Step 4 never rejects. Any failure — network error, timeout, non-2xx or JSON error — becomes `null`.
+An endless `{base}/{m}` ↔ `/login` loop is possible only when all three hold [I]:
+1. `__INITIAL_STATE__.token` is missing;
+2. `/server/token` also fails (blocked, the 8 s timeout, or non-2xx) while the BFF session is still live;
+3. step 4 therefore returns `null`.
+
+Then the SPA writes `pa-original-url` (`pa:utils/checkDisallowedUrls.ts:32-47`) and goes to `/login`, and the BFF 302s `/login` back to that saved URL (`bff:bff-routes.ts:173-183`). With a live session, `/server/token` returns the token (it uses the same `isTokenLikelyValid` check, `bff:bff-routes.ts:231-240`), and the BFF normally inlines it (`:331-345`), so the loop does not happen in normal operation.
 When the result is `null`, the SDK `AuthOrchestrator` shall call `checkDisallowedUrls`. If the path is not `/` and not in `allowedUnauthorizedUrls`, it shall `location.replace` to the login page. The SDK's "network failure does not redirect" branch cannot run in this host.
 
 **OBS-AUTH-002** URL token。[F] `bff:bff-routes.ts:107-113,257-263`、`pc:auth/TokenExtractor/index.tsx:95,167,183-186`、`resolveInitialToken.ts:16-20`
@@ -269,10 +279,10 @@ The host has two separate axios instances, and each has its own one-shot flag:
 
 I6 runs this rule against both the real SDK instance and the local instance.
 
-**OBS-AUTH-006** 403 不注销。[F] `gateway-instance.ts:77-79`、`pa:apis/gateway-instance.ts:108-109` · I7
+**OBS-AUTH-006** 403 不注销。[F] `gateway-instance.ts:77-80`、`pa:apis/gateway-instance.ts:108-109` · I7
 When a gateway request gets a 403, neither interceptor shall log out or navigate.
 
-**OBS-AUTH-007** 匿名 401 不注销。[F] `gateway-instance.ts:85-89`
+**OBS-AUTH-007** 匿名 401 不注销。[F] `gateway-instance.ts:84-90`
 When a 401 response belongs to a request without an `Authorization` header, neither interceptor shall log out.
 
 **OBS-AUTH-008** Sign out。[F] `pc:Navigation/index.tsx:470-479`、`bff:bff-routes.ts:211-218`
@@ -282,6 +292,8 @@ When the user clicks Sign out, the SDK Navigation shall:
 3. `location.assign({basename}/logout)`.
 
 The BFF then clears the session cookie, the return-URL cookie and the merchant cookie, and 302s to `{basename}/login`. The Redux state disappears with the page unload.
+- The BFF only clears cookies and does not revoke the JWT (`bff:bff-routes.ts:201-218`, `bff:authorization.ts:25-30`). On stage, another open tab kept calling the gateway successfully with its in-memory token after the sign-out (S-42).
+- The BFF deletes `pa-v4-token`, `pa-merchant-id` and, when present, `pa-original-url` (`clearSession`, `bff:bff-routes.ts:201-206`). `gc-pa-*`, `network-pa-*`, `sb-pa-*` and `pa-locale` survive sign-out (stage R5; `pa-original-url` did not exist before that sign-out, so its deletion was not observed).
 （host `src/components/Navigation/index.tsx:29-40` 的 TODO 引用的是 SDK 0.2.7，已经过时。）
 
 **OBS-AUTH-009** 已登录用户访问入口页。[F] `bff:bff-routes.ts:161-188`、`src/routes/useMerchantAccessGuard.ts:75-105` · I5
@@ -330,7 +342,7 @@ When `registrationCompleted === false`, the host shall replace the URL with `/re
 **OBS-MAG-004** Admin 跳过成员检查。[F] `useMerchantAccessGuard.ts:137-139`
 Where the user is an admin, the host shall skip the organization-membership check and only perform `switchMerchant`.
 
-**OBS-MAG-005** Hydration 失败时放行（fail-open）。[F] `useMerchantAccessGuard.ts:170,186-197`、`ps:slices/user.ts:148-170`
+**OBS-MAG-005** Hydration 失败时放行（fail-open）。[F] `useMerchantAccessGuard.ts:170,186-197`、`ps:slices/user.ts:148-177`
 If `switchMerchant` or merchant hydration fails, the host shall log the error and render the tree anyway. The tree may then show the default org's data under the URL id.
 A normal member's first load seldom reaches this branch, because the SDK has already put the URL merchant into the store. The reachable cases are an admin whose merchant-detail request failed, and an in-app merchant switch whose `switchMerchant` failed.
 
@@ -369,6 +381,7 @@ When a PUSH navigation changes the pathname, the host shall scroll to the top, e
 **OBS-ROUTE-008** Chrome 显隐规则。[F] `src/layouts/Root.tsx:158-236`
 - The host shall hide the sidebar on these paths: `/marketplace`, the template creators, `/communication-hub`, `/support-hub`, `/select-project`, settings-layout paths (`/settings/company`, `/settings/api_key`, `/settings/administration`, `/profile`), and the setup Choose page.
 - The host shall hide the topbar on these pages: select-project, the site-builder editor, and the Choose page.
+- `/select-project` has no route: it falls through to `/not-found` (stage R1). The select-project clauses in `Root.tsx:171,202,236,259,275` are dead code (§11.3).
 - The host shall remove content padding on the listed full-bleed paths and on the exact path `/{m}/finance`.
 
 The settings and profile checks use substring `includes`.
@@ -378,8 +391,9 @@ The settings and profile checks use substring `includes`.
 **OBS-ACC-001** 等待权限加载。[F] `src/core/access/route-access.ts:125-149`、`src/routes/RouteAccessGuard.tsx:38`
 While any matched merchant route declares privileges and the privilege list is not settled (that is, not non-empty and idle), the host shall render `route-privileges-loader`.
 
-**OBS-ACC-002** 权限获取失败时永久 loading。[F] `route-access.ts:136-139`
-If the privileges fetch fails (settled empty), the host shall keep the loader for the rest of the session. The SDK does not retry. See S-04.
+**OBS-ACC-002** 权限获取失败时永久 loading。[F] `route-access.ts:136-142`、`src/pages/Dashboard.tsx:130-142`
+If the privileges fetch fails (settled empty), the host shall keep the loader for the rest of the session on **privilege-gated routes**. The SDK does not retry. See S-04.
+Routes without route privileges are not held. `/dashboard` evaluates its own access with the empty list and redirects to `/forbidden`. On stage, a privileges 401 is a different path: the SDK interceptor clears `user` and `token` from the store within about 0.6 s and navigates to `/logout` after about 2 s (§10.3 R5). `/logout` was requested before any `/forbidden` render; the `/forbidden` seen in R5 came from the test script fulfilling `/logout` with 204 so the page never unloaded. Whether a real user briefly sees `/forbidden` before the logout navigation is not verified [U].
 
 **OBS-ACC-003** 拒绝 → `/forbidden`。[F] `route-access.ts:47-67`、`pa:index.mjs:2890` · I15
 When any matched route is denied, the host shall `<Redirect>` (replace) to `/forbidden` and shall not dispatch that route's `fetchData`. A route is denied when at least one of these holds:
@@ -451,6 +465,8 @@ The host shall show a setup CTA only when a project id resolves and the matching
 | Additional Services | Offerwall | `offerwall` is in the nav |
 | Additional Services | Backpack | the 4 storefront privileges |
 
+The CTAs use the SDK `currentProject`. After a client-side navigation out of a project it is kept; a full-page load of a non-project page resets it to `projects[0]` (stage R1, SDK behaviour, corroboration only).
+
 ### 4.7 DASH：Dashboard
 
 **OBS-DASH-001** 访问拒绝。[F] `src/pages/Dashboard.tsx:135-143`
@@ -469,13 +485,16 @@ The list also holds 3 email addresses, but the caller passes only `user.id`, so 
 - Once `merchantId` is known, the host shall request the balance **unconditionally**. This includes accounting-demo users and users who will be redirected to `/forbidden` (S-26). `DashboardBalance` shares the same RTK cache entry.
 - Where the user holds **both** `get_metric_balance` **and** `get_metric_transactions_count` (`checkPrivileges` is AND), the host shall show balance and last/next payout. On error it shows "—".
 - Where the user holds those two privileges, **or** `get_graphics_gross_revenue`, the host shall embed the `xaa_widgets` remote board `DashboardWebGames` inside an ErrorBoundary.
+  - A remote load failure does not reach that ErrorBoundary: `RemoteModule` renders the unlocalized `<p>` of OBS-MF-002, e.g. `Failed to load: {url}` (`XAAWidgets/index.tsx:37-48`, `RemoteModule.tsx:97-101,115-121`).
+  - `xaa_widgets` has no static config, so it spins forever if the gateway list lacks it.
+  - The ErrorBoundary only catches render exceptions of the remote component.
 - Otherwise the host shall render only the header.
 
 The balance number replaces every `,` with a space. In de, es, pt, fr and ru the decimal comma therefore becomes a space, for example `1.234.567 50` (S-23).
 
 **OBS-DASH-005** UTM upsell。[F] `Dashboard.tsx:50,97-121,159-186`、`src/components/Dashboard/UpsellModal/index.tsx:56-88`、`src/core/utils/upsell.ts:19-45`、`src/core/apis/upsell.ts`
-When `utm_campaign` is present and the user has more than one merchant or more than one project:
-1. The host shall `GET salescards/info` with **only the first** campaign. This effect runs before every access check, so users who are redirected or have no dashboard privileges also send it (S-26).
+When `utm_campaign` is present and either holds — more than one business account (`selectAccounts` ← `GET /api/v1/sub_sites`), or more than one project in `projects.preload` (at most the first 3 projects) (`Dashboard.tsx:67-68,98-100`):
+1. The host shall `GET salescards/info` with **only the first** campaign. This effect runs before every access check, so users who are redirected or have no dashboard privileges also send it. Its deps include `intl` and the account and project counts (`Dashboard.tsx:121`) and earlier requests are not aborted, so on stage the GET was sent about 3 times per load (S-26).
 2. The modal shall render only in the branch for users with dashboard privileges. On mount it calls `PUT handle_all_utms`.
 3. Only owner and developer roles may pick a project. A pick sends `POST assign_to_user` with all campaigns.
 4. The host shall then `location.replace` to the link from `getIntegrationGuideLink`:
@@ -544,7 +563,7 @@ The host shall render these pages in `SettingsLayout`:
 | `/settings/administration` | none at route level; the SDK page sends non-admins to `/{m}/settings/company` and skips data fetching |
 
 The layout has its own sidebar and a "Back to account" button that goes to `/{m}`. On `/settings/company`, the host shall force-show `PAInfoBanner` to users who did not migrate from PA.
-`/profile` is in `settingsLayoutPaths`, so the shell sidebar is hidden there, but `/profile` is not rendered in `SettingsLayout` and has no "Back to account" button.
+`/profile` is in `settingsLayoutPaths`, so the shell sidebar is hidden there. It is not rendered in `SettingsLayout`; the SDK `ProfilePage` renders its own "Back to account" button that goes to `/{m}` (`routes.tsx:141-143`, `pp:Profile.tsx:263-293`; stage R1).
 
 **OBS-SET-002** Members 与 Activity。[F] `settings.ts`
 The host shall route `/settings/members` and `/settings/users` (`get_merchant_users`), and `/settings/user-activity` (`merchant_get_access_logs`), to SDK pages without the settings layout. A bare `/settings` falls through to `/not-found`.
@@ -579,7 +598,7 @@ The website validator shall reject private and loopback IP addresses and require
 When a logged-in user's Terms of Use are pending:
 - The shell shall send an owner to `/legal-consent` with `state.from`, and a non-owner to `/account-no-access`.
 - Admins bypass the gate, and are bounced off the consent pages.
-- The status request has a 10 s timeout and fails open.
+- The guard lets the user through after 10 s, but does not cancel the request (`pc:auth/LegalDocumentConsentGuard/index.tsx:168-173`). If the response arrives later and says the documents are pending, the owner is still redirected to `/legal-consent` (non-owners to `/account-no-access`). Only a request that hangs or fails keeps the user through.
 - The guard shows `AuthLoading` until the check finishes.
 - After consent the user returns to `state.from` or `/{m}`.
 - A just-signed-up account is suppressed for the rest of that tab's session.
@@ -618,7 +637,7 @@ When a layout mounts `RemoteModule name=X`, the host shall:
 6. Render the component with the caller props plus `basename=getAccountBasename()`.
 
 **OBS-MF-002** MF1 失败。[F] `RemoteModule.tsx:97-121`、`loadModule.ts:33-35,53-56,74-76`
-If loading fails, the host shall render an unstyled, unlocalized `<p>` with the raw error message (`RemoteModule.tsx:88-101`). The messages include:
+If loading fails, the host shall render an unstyled, unlocalized `<p>` with the raw error message (`RemoteModule.tsx:97-101,115-121`). The messages include:
 - `No component exported from {scope}/{module}`;
 - any raw `Error` message thrown by `container.init`, `container.get` or the module factory;
 - `Failed to load: {url}` — the URL without `?v=`;
@@ -704,7 +723,10 @@ Layers 2 and 4 go through `pickBy`, so empty values do not override earlier laye
 **OBS-I18N-002** 切换语言。[F] `src/App.tsx:73`、`ps:providers/LocaleProvider.tsx:24-52`、`pa:utils/locale.ts:91-117`、`pc:LanguageSwitcher.tsx:28-43`、`ps:slices/locale.ts:22-27`
 The host passes `getTranslationsData` to `PlatformShell`; the SDK owns locale resolution and switching:
 - **Switching.** The topbar LanguageSwitcher updates the locale optimistically and writes cookie and localStorage. It saves the profile locale only when there is a `merchantId`, via `POST /api/account/platform/{orgId}/users/location` (`pa:apis/profile.ts:25,41`). A save failure only goes to `console.error`, with no UI (S-25).
-On stage the save returned 200, yet after a reload `get_init_info` still returned the old profile locale, so the language reverted (S-39, U-16).
+On stage every save returned 200, but persistence was intermittent: some writes showed up after a reload, others stayed invisible for about 4–5 minutes (S-39, U-16).
+- **Profile page**: the SDK `ProfilePage` saves first and switches the UI only after success. A failed save shows a toast; the UI language stays, but the dropdown keeps the new value and is not rolled back (`pp:Profile.tsx:206-255`; S-46).
+- The dropdown order is `SUPPORTED_LOCALES` (en, ru, de, ko, ja, zh, es, fr, pt; `pa:utils/locale.ts:3`). Only the host-only `pa-locale` cookie is written (`pa:utils/locale.ts:136-140`).
+- On the stage SDK (store 1.15.3), `?locale=` never took effect in two runs (de, fr). The 772a320 SDK source predicts the URL locale applies at boot (`ps:slices/locale.ts:10-13`, `pa:utils/locale.ts:91-95`). This needs a retest on a build with SDK ≥ 1.15.6 (S-36).
 Neither the host nor the SDK sets `<html lang>` (S-40).
 - **On load**（`ps:providers/LocaleProvider.tsx:33-67`、`pa:apis/merchant.ts:216`）:
   1. `?locale=` applies only until user data loads. A mount effect strips the parameter with `replaceState`. When `user.locale` arrives later, `hasUrlLocale` is already false, so the profile locale wins.
@@ -803,16 +825,16 @@ URL 来源："gateway" 指 `GET /api/v1/modules` 返回的 `urls[APP_ENV]`。"+s
 | sdk-integration | `sdk-integration` / `./App` | gateway+static | `token` | — |
 | launcher（旧） | `launcher` / `./OldApp` | gateway | `token` | — |
 | launcher-new | `launcher` / default | gateway | `token` | — |
-| storefront | `storefront` / default | gateway | `token` | **render 期间**写 cookie `gc-pa-v4-token`（只设 `secure`）、`gc-pa-locale`、`gc-pa-merchant-id`、`gc-pa-project-id`（S-01） |
+| storefront | `storefront` / default | gateway | `token` | **render 期间**写 cookie `gc-pa-v4-token`（只设 `secure`）、`gc-pa-locale`、`gc-pa-merchant-id`、`gc-pa-project-id`（S-01）。772a320 另传 `userId`、`userEmail`、`userName`、`userRole`，并在 `shouldMountCatalog` 为 false 时不挂载（`catalog-identity.ts:22-46`；webhooks 的 GcTab 同理）；stage `c1b5e37` 还没有这部分 |
 | network | `network` / default | gateway | 只传 `token` | merchant、project、locale 通过 **render 期间**写入的 cookie `network-pa-*`（默认选项）传递 |
-| SiteBuilder | `site-builder` / default | gateway | `token` | 在 effect 中写 `sb-pa-*`。cookie 域名按 hostname 决定：`.xsolla.com` / `xsolla.com` / `.srv.local`，否则只限当前 host（`getCookieParams`，`cookie.ts:101-118`） |
+| SiteBuilder | `site-builder` / default | gateway | `token` | 在 effect 中写 `sb-pa-*`。cookie 域名按 hostname 决定：`.xsolla.com` / `xsolla.com` / `.srv.local`，否则只限当前 host（`getCookieParams`，`cookie.ts:101-118`）。`key=merchantId:projectId`，切换项目时会重新挂载（`SiteBuilder/index.tsx:68`）；stage `c1b5e37` 没有这个 key，客户端切换项目后空白 8–14 s |
 | payments | `payments` / default | gateway | `token` | — |
-| webhooks-store（经 project-settings） | storefront、subscriptions、payments 的多个 expose | gateway | `token` | `webhookSecrets` 恒为 `[]`，因为 webhooks slice 的 thunk 从未被 dispatch（§11.3）；货币列表来自 `/mapi/merchant/current/currency/list` |
+| webhooks-store（经 project-settings） | storefront、subscriptions、payments 的多个 expose | gateway | `token` | `webhookSecrets` 恒为 `[]`，因为 webhooks slice 的 thunk 从未被 dispatch（§11.3）；货币列表来自 `/mapi/merchant/current/currency/list`。SDK 只在项目 `ipn_enabled && payment_url` 时挂载 Testing 页签和高级设置（`pp:EditWebhooks.tsx:96,165-166`）；未知或不可用的页签回退到 `/store`；`event-api` → `advanced` 由 SDK 决定（`EventApi.tsx:95-97`） |
 | Support | `support` / default、`subscriptions` / `./support` | gateway | `token` | — |
 | CommunicationHub | `communication_platform_v2/SupportHubV2`（MF 2.0），回退 MF1 `communication_platform` | gateway（派生 manifest） | `token` | MF1 回退使用 gateway 中该 module 的默认 expose。stage 的 module 列表中它是 `./SupportHubV2`，入口文件为 `remoteEntry.js`（§10.3） |
 | xsolla-gold | `xsolla-gold` / default | gateway | `loginToken` | 项目级 `P/gold` 可达；merchant 级不可达（D1） |
-| xsolla-link | `xsolla-link` / default | gateway | `token` | 对非 admin 在 **render 中** `history.push('/forbidden')`；项目级 `P/link` 可达 |
-| metaframe | `metaframe` / default | gateway | `token` | — |
+| xsolla-link | `xsolla-link` / default | gateway | `token` | 对非 admin 在 **render 中** `history.push('/forbidden')`；项目级 `P/link` 可达。stage 的 gateway 列表里没有这个条目，项目级页面一直转圈（OBS-MF-001 第 2 步） |
+| metaframe | `metaframe` / default | gateway | `token` | merchant 级必崩（S-35）。stage 的 gateway 列表里没有这个条目，项目级页面一直转圈（OBS-MF-001 第 2 步） |
 | subscriptions | `subscriptions` / default | gateway | `token` | — |
 | advanced-analytics、Dashboard | `xaa_widgets` / default（用 `componentName` 选 board） | gateway | `tokenJWT` | — |
 | ChargebackRegistry | `disputes` / `./app` | gateway+static | `token` | — |
@@ -869,7 +891,11 @@ Remote 的 prop 契约（命名包括 `rootURL` / `rootUrl`、`merchantId` / `me
 | GET / POST | `legal-documents/consents/status`、`legal-documents/consents`（每份文档一个 POST）、`legal-documents/current?type=` | LegalDocumentConsentGuard、注册 Step 2 | `pa:apis/legal-document.ts:31-85` |
 | POST | `/api/project/{m}/create` | 注册 Step 2 | `pa:apis/project.ts:286-301` |
 | GET | `/mapi/merchant/current/projects/{p}/webhook_storage_integration` | 底部 sidebar（OBS-NAV-004） | `pa:index.mjs:1945,2006` |
-| GET | `/api/v2/support-hub/{m}/notifications/status` | Topbar 的 Communication Hub 通知点 | `src/config.ts:86-94` |
+| GET | `{chatApiUrl}/api/v2/support-hub/{m}/notifications/status?account={siteId}` | Topbar 的 Communication Hub 通知点，每个 merchant 一次，不轮询 | `pa:apis/communication.ts:19-29`、`ps:slices/communications.ts:25-29`、`pc:Navigation/index.tsx:161-165`、`src/App.tsx:51` |
+| GET | `/mapi/merchant/merchants/{m}/projects/paged/lite?page=&limit=[&search=]` | SDK projects slice（Navigation、ProjectSwitch、Dashboard 访问判断） | `pa:apis/project.ts:184-216`、`ps:slices/projects.ts:312,400,528` |
+| GET | `/mapi/merchant/current/{,internal/}projects/{p}/togglers` | `P/edit/advanced` 的 SDK 支付设置 | `pa:apis/togglers.ts:23,45`、`pp:projects/IntegrationSettings/PaymentsSettings.tsx:47` |
+| GET | `/api/v1/admin/project/{p}/project-analytic` | `P/integrations` 的 SDK `IntegrationsPage`。host 没有调用 `setupAnalyticsAxios`，请求以相对 URL 发到应用自身的域名，stage 返回 404（S-41） | `pa:apis/analytics-instance.ts:13-23`、`pa:apis/integrations.ts:33-41` |
+| POST | `/xfe-api/accesslogs/merchants/report/{m}` | topbar 切换项目时的访问日志（写入） | `sh:userRequestTracker.ts:16`、`pa:apis/access.ts:16` |
 
 SDK 发出的完整清单仍见 U-03。
 
@@ -888,7 +914,7 @@ SDK 发出的完整清单仍见 U-03。
 | Section 限定角色 | blocked path 与实际路由不一致，且大小写敏感，webdev 可以进入公司设置和成员页（S-18、S-19） | [F] |
 | 未 gate 的敏感路由 | `/settings/administration`（SDK 页面内对非 admin 重定向）和 `/ontology`（页面内检查）没有 route gate；`site-builder`、`gold`、`link`、`funding` 等也没有 route gate；`visibility` 不生效 | [F] |
 | iframe | IntegrationFrame 用前缀匹配，有 4 种绕过方式（S-03）；`step.url` 的 developers 判断用的是子串（S-30）；所有 iframe 都没有 `sandbox`。SDK 的两个 iframe 页面在 message 监听中校验 origin | [F] |
-| 跳转 | UpsellModal 会 `location.replace` 到 backend 返回的 `step.url`（open redirect 面），而站内相对链接没有加 basename（S-20） | [F] / [I] |
+| 跳转 | UpsellModal 会 `location.replace` 到 backend 返回的 `step.url`（open redirect 面），而站内相对链接没有加 basename（S-20）。stage R5 用 mock 的外部 `step.url` 观察到 `location.replace`，历史记录被替换 | [F]；stage 观察（mock 数据） |
 | 公开路径不一致 | BFF 的 `PUBLIC_PATHS` 包含 `/forbidden`、`/not-found`，SPA 的 `allowedUnauthorizedUrls` 不包含，导致无会话访问时多一次跳转（S-22） | [F] |
 | MCP | 客户端只检查 `client_id` allowlist，`redirect_uri` 的注册校验依赖 Xsolla Login 服务端；OTP 放在 GET query 中；注册未完成的会话会打断 MCP 流程（OBS-MCP-003） | [F] / [U] |
 | XSS | 没有 `dangerouslySetInnerHTML`、`eval`、`new Function`。唯一的 `innerHTML` 是 DOM 内部复制 | [F] |
@@ -908,19 +934,19 @@ SDK 发出的完整清单仍见 U-03。
 | gateway 中没有条目、也没有静态配置的 remote：一直转圈，不发请求 | `RemoteModule.tsx:65-68` |
 | 翻译文件静态打包，不懒加载；切换 locale 由 SDK shell 负责 | `locales/index.ts` |
 | `gcApi` 使用 RTK 默认 `keepUnusedDataFor` 60 s；只有 `countries` endpoint 设为 3600 s | `core/store/api.ts:50-60`；`core/store/api/directories.ts:25` |
-| LegalDocumentConsentGuard 的状态请求超时 10 s，超时后放行 | `pc:auth/LegalDocumentConsentGuard/index.tsx:41,168` |
+| LegalDocumentConsentGuard 等待 10 s 后先放行（请求本身没有超时，也不取消；迟到的待签响应仍会重定向） | `pc:auth/LegalDocumentConsentGuard/index.tsx:41,168-173` |
 
 ### 8.3 Error handling
 
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | module 列表失败 | 抛错，白屏 | OBS-BOOT-002 |
-| `/server/token` 失败或超时 | 与无会话相同。路径不在 `allowedUnauthorizedUrls` 中时 `location.replace` 到 login，不保留当前页重试 | OBS-AUTH-001 |
+| `/server/token` 失败或超时 | 与无会话相同。路径不在 `allowedUnauthorizedUrls` 中时 `location.replace` 到 login，不保留当前页重试。若 BFF 会话仍有效（只在 token 未内联且 `/server/token` 也失败时才会走到这一步），会出现 `{base}/{m}` ↔ `/login` 无限循环 | OBS-AUTH-001 |
 | 无会话访问 `/forbidden`、`/not-found` | BFF 放行，SPA 再跳 login | S-22 |
 | gateway 401（带 token） | 两个拦截器各自一次性跳转 BFF `/logout`；SDK 拦截器对 viewer 跳过 | OBS-AUTH-005 |
 | gateway 403 | 交给调用方；路由层负责跳 `/forbidden` | OBS-AUTH-006 |
 | 非 gateway 实例的 401 | 没有全局处理 | [F] |
-| privilege 获取失败 | 永久 loader | OBS-ACC-002 |
+| privilege 获取失败 | 有权限门槛的路由永久 loader；`/dashboard` 跳 `/forbidden` | OBS-ACC-002 |
 | merchant hydration 失败 | 放行渲染 | OBS-MAG-005 |
 | user / merchant 缺失 | 500 HydrationError | OBS-ERR-002 |
 | project 列表失败 | ProjectLoadError + Retry | OBS-PROJ-001 |
@@ -1053,7 +1079,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | OBS-REG-001 | Host → SDK `CreateProjectOnboarding` → gateway | `pp:projects/CreateProjectOnboarding.tsx` | I13 stand-in 规则错误（T-01） | unknown | 772a320 + SDK | source-verified；测试资产有缺陷 | 修正 stand-in 与 I13 断言；在 stage 确认 Step 2 刷新与 Skip 后的新会话行为（S-33）；owner：host 团队 |
 | OBS-REG-003 | SDK LegalDocumentConsentGuard | `pc:auth/LegalDocumentConsentGuard/index.tsx` | I14 stand-in（缺少超时、admin、suppress） | unknown | 772a320 + SDK | source-verified；runtime unknown | 让 stand-in 与 SDK 对齐，或改用真实 guard；owner：host 团队 |
 | OBS-MF-001/002 | Host ↔ gateway module list ↔ remote | `RemoteModule.tsx`、`loadModule.ts` | 单元测试（mock） | e2e 健康断言只覆盖匿名场景 | 772a320 | partial | 登录后加载每个 remote 的 e2e；gateway 缺少条目时的负向测试；owner：host 团队 |
-| OBS-MF-003 | Host ↔ chat remote（MF 2.0 manifest） | `registerGatewayRemotes.ts`；`bridge@0.0.2` | 只有 `it.todo` | unknown | 772a320 + deps | source-verified（加载阶段）；remote 内部渲染错误 [U] | MF1 fallback 测试（stage 的默认 expose 已确认为 `./SupportHubV2`，§10.3）；prod 的 module 列表；owner：host 团队 + chat 团队 |
+| OBS-MF-003 | Host ↔ chat remote（MF 2.0 manifest） | `registerGatewayRemotes.ts`；`bridge@0.0.2` | 只有 `it.todo` | unknown | 772a320 + deps | source-verified；stage 上加载阶段已证实（R1 RT-MF-070）；remote 内部渲染错误 [U] | MF1 fallback 测试（stage 的默认 expose 已确认为 `./SupportHubV2`，§10.3）；prod 的 module 列表；owner：host 团队 + chat 团队 |
 | OBS-MCP-001/002/003 | Host ↔ Xsolla Login ↔ SDK RegistrationGuard | `oauthLogin.ts`；`pc:auth/RegistrationGuard` | `oauthLogin.test.ts` | e2e 的 2 个测试为 `test.skip`（stage build 早于该路由） | 772a320 + SDK | partial | Login 服务端的 `redirect_uri` 注册证据；注册未完成会话的 MCP 流程；owner：Login 团队 + host 团队 |
 | OBS-FRAME-001 | Host ↔ upsell backend 数据 | `available-domains.ts` | 有 7 个负向用例（`available-domains.test.ts:38-68`）和 loader 用例，但没有绕过用例 | — | 772a320 | suspected defect | 见 S-03；owner：host 团队 |
 | OBS-DASH-005 | Host ↔ 部署 basename | `UpsellModal/index.tsx:71-75`、`core/utils/upsell.ts` | 单元测试断言的是无 basename 的 `'/42'` | stage：不带 basename 的地址返回 BFF 404（§10.3） | 772a320；stage `c1b5e37` | suspected defect（运行时后果已观察） | 修复后在 stage 回归；owner：host 团队 |
@@ -1065,7 +1091,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 
 - **环境**：stage，部署 `stage-web-games-20261005-03`（commit `c1b5e37`），观察日期 2026-10-21。
 - **账号**：Xsolla admin，所以涉及成员校验的结论只适用于 admin 变体。
-- **操作性质**：只读浏览。
+- **操作性质**：Batch A、A2、A5b、R1 为只读（R1 用请求拦截挡住写入，漏过 1 次 SDK 访问日志 POST）；C1、R5 有真实写入（profile 语言，已恢复为 `en`；一次 BFF `/logout`）。R5 登出时的 JWT 没有被吊销，在过期前仍然有效，这一点无法撤销。
 - **适用范围**：只采纳满足以下任一条件的观察：本文已用 772a320 源码核对过对应逻辑；或相关文件在 `c1b5e37` 与 772a320 之间没有变化。
 - **版本差异**：
   - **SDK**：stage 上 7 个 SDK 包都是更旧的补丁版本，即 `platform-apis 2.29.0`、`platform-components 4.20.1`、`platform-pages 3.25.1`、`platform-shell 2.22.1`、`platform-store 1.15.3`、`platform-ui 0.9.4`、`platform-locales 2.6.5`。因此下表中依赖 SDK 行为的观察（OBS-PROJ-001、OBS-MAG-002 的 admin 分支、OBS-ERR-001）只证明旧补丁版本的行为，在 772a320 上只算佐证。
@@ -1122,6 +1148,61 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-39、U-16 | `POST …/users/location` 在 `{"locale":"de"}` 和 `{"locale":"fr"}` 时都返回 200，store 当场更新；整页刷新后 `get_init_info` 返回的 profile 语言仍是 `en`，页面和 `pa-locale` cookie 都回到英语 | 新可疑点：保存成功但不持久化。原因在后端或字段映射 [U]。SDK 2.29.2 用的是同一接口 |
 | S-40 | 切换语言后 `<html lang>` 始终是 `en` | 与源码一致（host 与 SDK 中都没有设置它的代码） |
 
+
+**R1 只读批次（`stage-results-R1-readonly.md`；2026-10-21 05:59–07:29Z；admin，merchant 53105；Playwright 连接有头 Chrome，用户登录，请求拦截挡住写入）**
+
+合计：PASS 43、部分通过 20、FAIL 5、BLOCKED 2、N/A 7。5 个 FAIL 中，RT-MF-017 和 RT-MF-026 只是 stage 版本落后（772a320 已有相应代码），RT-MF-025 第 2 步与本文一致（测试预期写错了）；只有 RT-API-060、RT-SET-011 对应本文的修改。
+
+| 关联 ID | 观察结论（有边界） | 对本文的影响 |
+|---|---|---|
+| OBS-SET-001 | `/profile` 有 SDK 自带的 "Back to account" 按钮（→ `/{m}`） | 修正 OBS-SET-001 |
+| S-41、§7.2 | `P/integrations` 的 project-analytic 请求以相对 URL 发到应用自身域名，返回 404 text/html；togglers 请求来自 SDK 项目设置页 | 新增 S-41；扩充 §7.2；S-09 不变 |
+| OBS-MF-001、§6 | stage gateway 没有 metaframe 和 xsolla-link，项目级页面一直转圈；player-platform 的 scope 是 `"string"`，回退静态配置后能加载 | 证实第 1、2 步 |
+| S-35 | `M/metaframe` 必崩，没有 remoteEntry 请求，同时有一个 400 | 再次证实 |
+| OBS-ROUTE-008 | `/select-project` 落到 not-found | 相关规则改为死代码 |
+| OBS-NAV-002 | chargeback 页高亮被折叠在组内；折叠态在项目解析前没有 Tools 组 | 新增 S-43、S-44 |
+| S-26、S-08 | 带 utm 时 `salescards/info` 请求约 3 次，query 未编码 | S-26 补充；S-08 证实 |
+| OBS-AUTH-005 | token 有效时出现 3 次短暂 401，每次导航到 `/logout` 一次 | 证实；新增 U-17 |
+| OBS-I18N-002、S-36 | `?locale=fr` 从未生效（旧 SDK），参数约 14 s 后被移除 | 依赖 SDK 版本，需要复测 |
+| OBS-HOME-005 | 客户端导航保留 currentProject；整页加载时回到第一个项目 | 补充（SDK 行为，只作旁证） |
+| §6 webhooks | 需要 `ipn_enabled && payment_url`；未知页签回退到 store | 补充前置条件 |
+| S-10 | 上报的 `business_account_id=web-games`，没有可见影响 | S-10 降为低 |
+| §2.4 EnterAccountGate | admin 跳过 gate | 非 admin 待 R3（U-15） |
+| 再次证实 | S-17、S-21、S-37；折叠态 `window.open` 分支不可达（§11.3）；webhooks thunk 未被 dispatch（§11.3）；BFF 只服务 `/for/:site/*`；OBS-MF-003 加载阶段 | 无 |
+
+**R5 写入批次（`stage-results-R5-writes.md`；2026-10-21 09:07–10:07Z 与 2026-10-22 02:13–02:15Z；admin；真实写入：`users/location` 36 次（已恢复为 `en`）、BFF `/logout` 1 次；upsell、balance、privileges 等为 mock）**
+
+R5 的 4 个 FAIL 中，RT-UI-008 和 RT-ANA-005 只是 stage 版本落后（772a320 已修复）。结果文件中关于 S-39 的一行与同文件其他记录矛盾（`ja@09:10`），引用前需要核对原始输出。
+
+| 关联 ID | 观察结论（有边界） | 对本文的影响 |
+|---|---|---|
+| S-39、U-16 | 36 次写入都返回 200；7 次中只有 2 次在刷新后可见；de 可见之后，两次 en 写入约 4–5 分钟内不可见 | S-39 改为间歇；U-16 改写 |
+| S-23 | mock 余额 1234567.5：de/es/pt 显示 `1.234.567 50`，fr/ru 用窄空格 | 补充千位分隔符证据 |
+| S-24 | slot 重挂载或刷新后变为 de | 两半都已证实 |
+| S-25、S-46 | 请求被 abort：界面照常切换，只有 console.error；Profile 保存失败：toast，下拉框不回滚 | 证实 S-25；新增 S-46 |
+| S-40、OBS-I18N-002 | `<html lang>`=en；下拉顺序与 `SUPPORTED_LOCALES` 一致；只写 host-only 的 `pa-locale` | 证实 |
+| OBS-DASH-005、S-26、S-30 | 只用第一个 campaign；没有卡片时不弹窗，也不发 PUT；禁用的项目排在前面；URL 中出现两个 `?`；真实 GET 发了 3 次 | 证实；S-26 补充 |
+| S-20、AC-13 | `/53105/frame/documentation` 和 `/53105` 都返回 BFF 404 | 证实；去掉 [U] |
+| §8.1 跳转 | 外部 `step.url` 被 `location.replace`，历史记录被替换（mock 数据） | open redirect 面在 stage 上观察到 |
+| S-45、U-19 | 弹窗只列出已加载的 100/688 个项目；ADMIN 只看到无权限文案 | 新增 S-45、U-19 |
+| OBS-AUTH-008 | `/logout` 302 到 `/login`；删除了 `pa-v4-token`、`pa-merchant-id`（登出前没有 `pa-original-url`，无法观察它的删除）；返回键和深链都落到 `/login` | 证实；没有做"拦截 `/logout`"的变体 |
+| S-42、S-01 | 登出后，另一个 tab 的 gateway 请求返回 200；`gc-pa-v4-token` 等 cookie 残留 | 新增 S-42；S-01 扩展 |
+| OBS-AUTH-005、AC-02、§8.1 日志 | host 401：约 2043 ms 后导航，store 保留；SDK 401：约 0.6 s 清空 store，约 2072 ms 后导航；并发 401：两个拦截器各发起一次 `/logout`（共 2 次导航请求，后一次取代前一次），最终落地 1 次；日志打印 token 前 20 字符 | 证实（viewer 分支未测） |
+| OBS-ACC-002、§8.3 | privileges 401 时，约 0.6 s 清空 store 的 `user` 与 `token`，约 2072 ms 后导航到 `/logout`（1 次）。`/logout` 先于 `/forbidden` 发起；R5 中看到的 `/forbidden` 是测试脚本把 `/logout` mock 成 204、页面没有卸载造成的，不是产品行为（R5 独立 review 已撤回） | 收窄到有权限门槛的路由；真实流程中是否短暂出现 `/forbidden` 记为 [U] |
+| 未执行 | 46 条：22 条需要新注册账号，18 条因 stage 没有 `/login/mcp`，5 条需要其他角色，1 条需要过期 JWT | 见 §12 |
+
+**QA 执行单 §4（`qa-handoff-devtools.md`；作者读源码得出，QA 结果尚未填写；本文已逐条对照源码复核）**
+
+| 关联 ID | 复核结论 | 对本文的影响 |
+|---|---|---|
+| OBS-BOOT-003 | 缺少模块、没有 URL 或没有 manifest 映射时，逐个 warn 并跳过，不抛错；只有 runtime 抛错才走 catch | 改写 OBS-BOOT-003 |
+| OBS-AUTH-001、§8.3 | token 未内联、`/server/token` 也失败，而 BFF 会话仍有效时，`{base}/{m}` 与 `/login` 之间会无限循环；会话有效时 `/server/token` 会返回 token，正常运行时不可达 | 补充 [I] 风险 |
+| OBS-REG-003、§8.2 | guard 10 s 后先放行，但不取消请求；迟到的待签响应仍会重定向 | 改写 |
+| OBS-DASH-005 | 条件是 business account 数 > 1，或 `projects.preload`（最多前 3 个）> 1 | 改写条件 |
+| OBS-DASH-004、OBS-MF-002 | XAA 加载失败显示未本地化的 `<p>`，不经过 ErrorBoundary；gateway 没有条目时一直转圈 | 补充；修正行号 |
+| §7.2、U-03 | chat 通知路径带 `?account={siteId}`；项目列表为 `projects/paged/lite` | 补充 §7.2 |
+| 行号 | OBS-AUTH-006 → `:77-80`，OBS-AUTH-007 → `:84-90`，OBS-ACC-002 → `:136-142`，OBS-MAG-005 → `user.ts:148-177`（原行号只覆盖注释） | 已修正 |
+
 ---
 
 ## 11. 缺陷、可疑点与死代码
@@ -1138,16 +1219,16 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 
 | ID | 描述 | 严重度 [I] | 证据 |
 |---|---|---|---|
-| S-01 | storefront 在 **render 期间**把原始 JWT 写进 JS 可读 cookie `gc-pa-v4-token`：只设 `secure`，没有 `sameSite`；token 为 null 时按 js-cookie 默认行为写入 `"null"` [I] | 高 | `layouts/storefront/index.tsx:12-17` |
+| S-01 | storefront 在 **render 期间**把原始 JWT 写进 JS 可读 cookie `gc-pa-v4-token`：只设 `secure`，没有 `sameSite`；token 为 null 时按 js-cookie 默认行为写入 `"null"` [I]。host 只写不读，删除不影响 host 会话，下次 render 会重写；BFF 登出后仍残留（stage R5），与 S-42 叠加 | 高 | `layouts/storefront/index.tsx:12-17` |
 | S-02 | MF1 加载器：首个加载进行中挂载的并发调用者在首个失败后永久轮询，interval 不清理；funding 页可以稳定复现。stage 已用页面内拦截复现（§10.3 Batch A2） | 中 | `modules/loadModule.ts:22-31`；`Funding/index.tsx:118-130` |
 | S-03 | IntegrationFrame 的域名 allowlist 用 `startsWith` 前缀匹配，userinfo、拼接主机、后缀子域、端口四种形式都能绕过（需要能控制后端 card 数据） | 中 | `pages/IntegrationFrame/available-domains.ts:12-13` |
-| S-04 | 权限获取失败时整个会话永久 loading | 中 | `core/access/route-access.ts:136-139` |
+| S-04 | 权限获取失败后，有权限门槛的路由在整个会话中永久 loading；没有路由权限的页面（如 `/dashboard`）不受这条影响（OBS-ACC-002） | 中 | `core/access/route-access.ts:134-142` |
 | S-05 | `redirectToAccountRoot` 两个分支都返回 `false`，所以 `bootstrap.tsx:54` 的短路永远不会触发（当前无害）。修复时不能只改成 `return true`，否则 bootstrap 会 return 而不 render，导致白屏；必须同时导航或继续渲染 | 低 | `redirectToAccountRoot.ts:15`；`bootstrap.tsx:53-56` |
 | S-06 | `config.ts` 读取的 4 个环境变量不在 DefinePlugin 中，而且都没有运行时读取方。没有运行时影响，属于清理项 | 低 | `config.ts:3-7,113` |
 | S-07 | `componentErrorHandler` 的 `status=...` 是字面占位符，message 未编码；`/error` 页忽略 query，所以没有 UI 影响 | 低 | `core/utils/error.ts:31`；`layouts/error/index.tsx:7-19` |
-| S-08 | `utm_campaign` 拼进 query 时没有 `encodeURIComponent` | 低 | `core/apis/upsell.ts:35` |
+| S-08 | `utm_campaign` 拼进 query 时没有 `encodeURIComponent`。stage R1 已证实 | 低 | `core/apis/upsell.ts:35` |
 | S-09 | integrations togglers 的路径缺少 `/mapi` 前缀。调用方只在死代码中，当前不可达 | 低 | `core/apis/integrations/index.ts:120-133` |
-| S-10 | `App.tsx` 把 `accountId` 设为 `'skeleton-test'`，与 `site_id: web-games` 不一致（像是模板残留） | 待确认 | `src/App.tsx:58` |
+| S-10 | `App.tsx` 把 `accountId` 设为 `'skeleton-test'`，与 `site_id: web-games` 不一致（像是模板残留）。stage R1 没有观察到可见影响（上报的 `business_account_id=web-games`） | 低 | `src/App.tsx:58` |
 | S-11 | `tsconfig.json` 设置了 `ignoreDeprecations: "6.0"`，但 TypeScript 是 4.9.5 | 待确认 | `tsconfig.json:11` |
 | S-12 | `MODULE_MAPPINGS` 中 `gold` / `link` 的名字和大小写与实际不一致。`initModuleUrls` 写入的 window 变量只被未使用的 webpack remotes 读取（另有 ontology），所以没有运行时影响；若恢复静态 remote import 则需修正（与 S-13 相关） | 低 | `modules/config.ts:67-86`；`layouts/ontology/index.tsx:12-15` |
 | S-13 | webpack `remotes` 声明了 16 个 remote，但 src 中没有静态 `import('<remote>/…')`，这些声明在运行时实际未使用 | 低 | `webpack.base.config.ts:267-286` |
@@ -1157,13 +1238,13 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-17 | sdk-integration 的 development URL 指向 production remote，与代码注释不符 | 低 | `config.ts:47-53` |
 | S-18 | `BLOCKED_MERCHANT_PATHS` 中的 `/users`、`/company` 匹配不上 `/settings/users`、`/settings/members`、`/settings/company`，所以 webdev section 角色可以进入公司设置和成员页 | 中 | `core/access/sections.ts:76-85,143-144`；`routes/inside/settings.ts:37-54` |
 | S-19 | section 路径判断区分大小写，而路由匹配不区分。大写 URL 可以让 webdev 绕过阻止，也会让 liveops / items-catalog 的合法页面被误拒 | 中 | `sections.ts`；`route-access.ts` |
-| S-20 | Upsell 选完项目后，`location.replace` 的站内目标（`/{m}`、`/{m}/frame/documentation`、`/{m}/dashboard`、相对 `step.url`）都没有加 `withAccountBasename`，在任何 `/for/{site}/account` 部署下都会离开应用。根级 `/{m}` 返回什么是 [U]；`withAccountBasename` 在 `server.ts:21` 中有正确用法 | 中 | `UpsellModal/index.tsx:71-75`；`core/utils/upsell.ts:20-45`；`core/utils/url.ts:41-44` |
+| S-20 | Upsell 选完项目后，`location.replace` 的站内目标（`/{m}`、`/{m}/frame/documentation`、`/{m}/dashboard`、相对 `step.url`）都没有加 `withAccountBasename`，在任何 `/for/{site}/account` 部署下都会离开应用。stage R5 证实 `/{m}` 和 `/{m}/frame/documentation` 都返回 BFF 404；`withAccountBasename` 在 `server.ts:21` 中有正确用法 | 中 | `UpsellModal/index.tsx:71-75`；`core/utils/upsell.ts:20-45`；`core/utils/url.ts:41-44` |
 | S-21 | `/error`、`/forbidden`、`/not-found` 读取 `state.user.id`，所以 `authorized` 恒为 false，已登录用户也看到 NavigationLite；应读取 `state.user.user?.id` | 低 | `layouts/error/*/index.tsx:17-19` |
 | S-22 | BFF 的 `PUBLIC_PATHS` 包含 `/forbidden`、`/not-found`，SPA 的 `allowedUnauthorizedUrls` 不包含，无会话访问时多一次跳转。stage 已证实 BFF 对这两个路径放行（§10.3 Batch A2） | 低 | `bff:bff-routes.ts:36-37`；`pa:constants/allowed-unauthorized-urls.ts:1-15` |
 | S-23 | 余额数字把所有 `,` 替换为空格，de、es、pt、fr、ru 的小数逗号变成空格，所有金额都受影响。stage 已复现（§10.3 C1） | 低 | `components/Dashboard/DashboardBalance/index.tsx:67-72` |
-| S-24 | LiveChat 在同一 slot 存续期间不响应 locale 和 token 的变化。stage 已复现前半段（§10.3 C1） | 低 | `components/LiveChat/LiveChat.tsx:86,183` |
+| S-24 | LiveChat 在同一 slot 存续期间不响应 locale 和 token 的变化。stage 两半都已证实：切换后不变（C1），slot 重挂载或刷新后才更新（R5） | 低 | `components/LiveChat/LiveChat.tsx:86,183` |
 | S-25 | SDK LanguageSwitcher 乐观更新语言：没有 `merchantId` 时不保存，保存失败只打 `console.error`，刷新后语言回退（owner：accounts-sdk） | 低 | `pc:LanguageSwitcher.tsx:28-43`；`ps:providers/LocaleProvider.tsx:24-52` |
-| S-26 | Dashboard 在任何权限判断之前就请求 balance 和 `salescards/info`，即将被重定向的用户和没有权限的用户也会发出请求 | 低 | `pages/Dashboard.tsx:65,97-121` |
+| S-26 | Dashboard 在任何权限判断之前就请求 balance 和 `salescards/info`，即将被重定向的用户和没有权限的用户也会发出请求。`salescards/info` 每次加载会重复约 3 次（effect 依赖 `intl` 与数量，`Dashboard.tsx:121`；stage R1、R5） | 低 | `pages/Dashboard.tsx:65,97-121` |
 | S-27 | 注册 Step 1 的副标题是占位文案，9 种语言都会显示给真实用户 | 低 | `src/locales/en.json:33`；`Registration.tsx:72-76` |
 | S-28 | 注册 Step 2（SDK）：<br>• terms 和 privacy 都加载失败时，Finish 永远报错，只能 Skip；<br>• consent 先于项目创建提交，项目创建失败时 consent 已记录，重试会再次提交；<br>• consent 提交失败时没有组件级提示 [I] | 低 | `pp:projects/CreateProjectOnboarding.tsx:125-154,181` |
 | S-29 | host 直接读取 `__INITIAL_STATE__.token`，绕过了 SDK 的一次性读取 `consumeInjectedToken`，token 在全局变量上留到 `AuthChecker` 清除为止（SDK 文档注释明确说不要这样做） | 低 | `resolveInitialToken.ts:25`；`sh:AuthOrchestrator.tsx:60-66` |
@@ -1176,8 +1257,14 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | S-36 | SDK `LocaleProvider` 注释说 `?locale=` 优先于 profile，但挂载时就删掉了该参数，用户数据加载后 profile（缺省为 `'en'`）覆盖 URL、cookie 与 localStorage。owner：accounts-sdk | 低 | `ps:providers/LocaleProvider.tsx:30-67`；`pa:apis/merchant.ts:216` |
 | S-37 | Email customizer 外链写死为生产域名 `https://sitebuilder.xsolla.com/...`，stage 上也指向生产 | 低 | `layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:413` |
 | S-38 | chrome 显隐规则用小写子串 `includes` 匹配，区分大小写，而路由不区分。大写 URL（如 `/Settings/Company`）会显示本应隐藏的 shell sidebar（与 S-19 同类） | 低 | `layouts/Root.tsx:158-236` |
-| S-39 | 切换语言的保存请求 `POST /api/account/platform/{orgId}/users/location` 返回 200，但刷新后 `get_init_info` 仍返回旧的 profile 语言，切换不能跨会话保留。只在 stage 上观察到；可能是后端没有保存，或写入的字段与 `get_init_info` 读取的不同（U-16）。owner：backend + accounts-sdk | 中 | `pa:apis/profile.ts:25,41`；§10.3 C1 |
+| S-39 | 切换语言的保存请求 `POST /api/account/platform/{orgId}/users/location` 返回 200，但刷新后 `get_init_info` 仍返回旧的 profile 语言，持久化**间歇**失败。stage R5：36 次写入都返回 200；有的写入在刷新后可见，有的在约 4–5 分钟内不可见。客户端只有两个写入方（topbar 与 Profile），加载时不写入；SDK 内没有跨请求缓存（`pa:apis/merchant.ts:109-134` 只对进行中的请求去重）；浏览器 HTTP 缓存没有排除。是写入丢失还是读到旧值，未知（U-16）。owner：backend + accounts-sdk | 中 | `pa:apis/profile.ts:25,41`；§10.3 C1 |
 | S-40 | 切换语言时 `<html lang>` 不更新（host 与 SDK 中都没有设置它的代码），影响屏幕阅读器和浏览器翻译 | 低 | host / SDK grep；§10.3 C1 |
+| S-41 | host 没有调用 `setupAnalyticsAxios`（`App.tsx:46-51` 只设置了 gateway、login、discord、chat 四个实例）。SDK `analyticsInstance` 的 baseURL 因此为空，`P/integrations`（SDK `IntegrationsPage`）的 project-analytic 请求发到应用自身的域名，stage 返回 404，集成列表无法加载。`config.externalAnalyticsApiUrl` 已经存在，只是只被死代码使用 | 中 | `src/App.tsx:7-13,46-51`；`pa:apis/analytics-instance.ts:13-23`；`pa:apis/integrations.ts:33-41`；stage R1 |
+| S-42 | 登出不吊销 JWT：BFF `/logout` 只清 cookie。其他 tab 内存中的 token 在登出后仍能成功调用 gateway，直到过期（stage R5：`project-tags`、`projects/paged/lite` 返回 200）。owner：BFF + backend | 中 | `bff:bff-routes.ts:201-218`；`bff:authorization.ts:25-30` |
+| S-43 | chargeback-registry 页面上 Anti-fraud 有 `aria-current`，但 Analytics 组保持折叠，用户看不到当前位置 | 低 | `merchant-sidebar-v2/index.tsx:32`；`nav-items-config.tsx:207-208`；stage R1 |
+| S-44 | 折叠态侧栏只读 store 的 `currentProjectID`，项目解析前（stage 上约 15 s）只显示 Other tools；展开态优先用 URL 中的项目 id | 低 | `sidebar/index.tsx:36,46`；`project-sidebar-v2/index.tsx:96-97`；stage R1 |
+| S-45 | upsell 弹窗只列出和搜索已加载的项目（stage：100/688），没有加载更多或服务端搜索 | 低 | `UpsellModal/index.tsx:44`；stage R5 |
+| S-46 | SDK Profile 页语言保存失败后，下拉框保留新值不回滚，再次保存会重复提交。owner：accounts-sdk | 低 | `pp:Profile.tsx:232-251`；stage R5 |
 
 ### 11.3 死代码（grep 确认：除测试外没有 import 方，或不会被执行）
 
@@ -1186,6 +1273,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
   - `src/routes/RedirectLogin.tsx`、`core/hocs/{withSiteValidation,withSiteInitialization,withDefaultSiteId}.tsx`、`core/hooks/useAuthorizationMiddleware.ts`。
   - `core/utils/{checkDisallowedUrls,routes,projectFormMappings,scc-notification}.ts`、`core/constants/{allowed-unauthorized-urls,integration-types}.ts`、`core/configs/scc-applicable-ids.ts`。
 - **Provider**：`core/providers/LocaleProvider.tsx`。locale 由 `PlatformShell` 处理。
+- **Root 中的 select-project 分支**：`layouts/Root.tsx:171,202,236,259,275`。没有 `/select-project` 路由（只有死代码 `routes/inside/select-project.js` 定义它），stage 上落到 not-found。
 - **组件**：`components/{TermsOfUseDrawer,AgreementPreviewDrawer}`、`components/Dashboard/{Sales,MarketingBanner,StatisticCard}`。由此 `/metrics`、`/graphics/gross_revenue` 与 marketing balance API 都不可达。
 - **API 与 store**：
   - `core/apis/merchant-init-status.ts`（`getMerchantInitStatus` 没有调用方）。
@@ -1226,7 +1314,7 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 |---|---|---|---|---|
 | U-01 | PlatformShell 的 guard 怎么处理无 token、注册未完成、ToU 待签和 401？ | **已关闭（source）** | 见 §2.4、OBS-AUTH-001/005、OBS-REG-003。剩余的只是运行时确认 | — |
 | U-02 | BFF `/server/token`、`/logout` 与 `__INITIAL_STATE__` 的契约是什么？ | 部分关闭 | 已核对 `bff:bff-routes.ts` 中 token 剥离、整页 `/login` 302、`/logout`、`PUBLIC_PATHS` 与内联 script 自删。仍需 hydration 失败时注入内容的源码核对，以及一次 stage hard reload 观察（记录 build id 和时区） | platform-bff 维护者 |
-| U-03 | SDK 包自己发起的 HTTP 调用有哪些，错误怎么处理？ | 部分关闭 | 注册、consent、项目创建、`get_init_info`、webhook storage 已列入 §7.2；完整清单仍需 SDK API 清单 | accounts-sdk |
+| U-03 | SDK 包自己发起的 HTTP 调用有哪些，错误怎么处理？ | 部分关闭 | 注册、consent、项目创建、`get_init_info`、webhook storage、项目列表、chat 通知、togglers、project-analytic、访问日志已列入 §7.2；完整清单仍需 SDK API 清单 | accounts-sdk |
 | U-04 | backend 是否在服务端校验 privilege、role、merchant 成员关系？客户端 guard 是 UX 还是安全边界？ | 未关闭 | gateway 授权文档，或直接调用 API 的负向测试 | gateway / backend |
 | U-05 | gateway module 列表的 `urls` key 是哪种形状？`communication_platform` 的默认 expose 是什么？ | **stage 已关闭**；prod 未观察 | stage：key 是 `development/stage/production`，`communication_platform.module=./SupportHubV2`（§10.3）。prod 仍需一份响应快照 | host 团队 |
 | U-06 | 发布流程是什么？CI 没有 deploy job，`release` 脚本来自 `@accounts-sdk/release-account` | 未关闭 | 发布 pipeline 文档与 CDN 路径 | host 团队 / DevOps |
@@ -1239,7 +1327,10 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 | U-13 | `pass_survey` 是否在服务端把 `is_completed` 置为 true？Skip 之后的新会话是否返回 `needs_acceptance`？ | 未关闭 | backend 契约或 stage 观察（S-33、OBS-REG-001） | backend + host 团队 |
 | U-14 | 根级 SDK `ErrorBoundary` 崩溃后为什么不随路由变化重置？ | 未关闭 | 读 `@accounts-sdk/platform-components` 的 `ErrorBoundary` 源码（是否有 `resetKeys` 或 location 依赖）；stage 已观察到该现象（§10.3） | host 团队 + accounts-sdk |
 | U-15 | S-34 在非 admin 账号上是否成立？ | 未关闭 | 用非 admin 账号整页打开外部 merchant URL（stage 当前只有 admin 账号） | host 团队 / QA |
-| U-16 | `users/location` 写入的语言为什么没有体现在 `get_init_info` 中（S-39）？是后端没有保存、字段不一致，还是 admin 账号的特殊情况？ | 未关闭 | 后端接口契约；用非 admin 账号复测 | backend + accounts-sdk |
+| U-16 | S-39 是写入丢失，还是 `get_init_info` 读到旧值（服务端缓存、副本延迟或 HTTP 缓存）？ | 未关闭 | 记录 `Cache-Control`、`Age` 和 `fromCache`；只写一次，之后每 30 s 轮询一次、持续 6 分钟；再用非 admin 账号复测 | backend + accounts-sdk |
+| U-17 | token 有效时，gateway 为什么会短暂返回 401？stage R1 出现 3 次（detail、privileges、features、项目列表同时 401），每次都导致一次 `/logout`（OBS-AUTH-005） | 未关闭 | gateway 日志或复现 | gateway + accounts-sdk |
+| U-18 | finance remote 整页加载深链时丢掉 `/reports`；`/launchers` 在两次观察中跳转行为不一致 | 未关闭 | remote 团队确认 | remote 团队 |
+| U-19 | `ROLE_ADMIN` 在 upsell 弹窗里只看到无权限文案（`UpsellModal/index.tsx:47`），这是预期行为吗？ | 未关闭 | 产品决定 | 产品 |
 
 ---
 
@@ -1248,35 +1339,37 @@ Then the browser should land on `/for/web-games/account/123/frame/documentation?
 按风险排序：
 
 1. **S-35 metaframe 必崩**：把 `M/metaframe` 的 `fetchData` 换成真正的 thunk（例如 host 已有的 lite 项目 thunk），或者删除这个条目；同时删除或修正 D1 的两条路由。补一个路由级测试，断言每个 `fetchData` 条目都返回 plain action 或 thunk。另外评估根级 ErrorBoundary 在路由变化时重置（U-14）。
-2. **S-01 token cookie**：去掉 storefront 的 JS 可读 token cookie。至少应该：
+2. **S-41 集成页 404**：在 `App.tsx` 中与其他实例一起调用 `setupAnalyticsAxios(appConfig.externalAnalyticsApiUrl)`，并补一个断言 `analyticsInstance.defaults.baseURL` 非空的单元测试。改动只有一行，可以立即恢复 `P/integrations`。
+3. **S-42 登出不吊销 JWT**：BFF `/logout` 在清 cookie 之外调用 Login 或 gateway 的吊销接口；同时评估多 tab 场景下的会话同步（例如 `storage` 事件或 BroadcastChannel）。owner：BFF + backend。
+4. **S-01 token cookie**：去掉 storefront 的 JS 可读 token cookie。至少应该：
    - 把写入移入 effect，不在 render 中写；
    - 设置 `sameSite`；
    - token 为 null 时不写。
 
    再与 storefront remote 团队确认能否改为通过 prop 传递 token。同时评估 S-29：host 改用 `consumeInjectedToken`。
-3. **S-18 / S-19 section 角色越权**：把 `BLOCKED_MERCHANT_PATHS` 改为实际路由（`/settings/company`、`/settings/users`、`/settings/members`），section 判断不区分大小写，并补 AC-12 测试。
-4. **S-03 iframe 校验**：IntegrationFrame allowlist 改为解析 `new URL(url).origin` 后做精确比较，并为 iframe 加上 `sandbox`。`getLinkByStep` 也改用 origin 判断（S-30）。
-5. **S-34 外部 merchant 深链**：请 accounts-sdk 让 `fetchUserData` 的回退调用真正不带 `org_id`（不再从 URL 重新解析），再补一个不注入 store、走真实 `fetchUserData` 的 I4 变体（AC-01b）。
-6. **S-20 upsell 跳转**：站内链接使用 `withAccountBasename`，并修正对应单元测试的断言（AC-13）。
-7. **T-01 测试资产**：修正 I13 stand-in、断言、README 和注释，让它们与真实 SDK 一致。再评估让 I13 / I14 直接使用真实 SDK guard。
-8. **D1 / D2**：
+5. **S-18 / S-19 section 角色越权**：把 `BLOCKED_MERCHANT_PATHS` 改为实际路由（`/settings/company`、`/settings/users`、`/settings/members`），section 判断不区分大小写，并补 AC-12 测试。
+6. **S-03 iframe 校验**：IntegrationFrame allowlist 改为解析 `new URL(url).origin` 后做精确比较，并为 iframe 加上 `sandbox`。`getLinkByStep` 也改用 origin 判断（S-30）。
+7. **S-34 外部 merchant 深链**：请 accounts-sdk 让 `fetchUserData` 的回退调用真正不带 `org_id`（不再从 URL 重新解析），再补一个不注入 store、走真实 `fetchUserData` 的 I4 变体（AC-01b）。
+8. **S-20 upsell 跳转**：站内链接使用 `withAccountBasename`，并修正对应单元测试的断言（AC-13）。
+9. **T-01 测试资产**：修正 I13 stand-in、断言、README 和注释，让它们与真实 SDK 一致。再评估让 I13 / I14 直接使用真实 SDK guard。
+10. **D1 / D2**：
    - 修正 `'gold'`、`'link'` 路径，或删除这两条 merchant 级路由；
    - 由产品决定 `visibility` 是否应在路由和导航中生效，再据此实现或删除这些数据。
-9. **可用性**：remote 加载加超时，并让失败传播给等待者（S-02）；统一 remote 错误 UI，做本地化，并且不向用户暴露 remote URL（OBS-MF-002）；为以下情况提供可重试的错误 UI 并本地化：
+11. **可用性**：remote 加载加超时，并让失败传播给等待者（S-02）；统一 remote 错误 UI，做本地化，并且不向用户暴露 remote URL（OBS-MF-002）；为以下情况提供可重试的错误 UI 并本地化：
    - privilege 获取失败（S-04）；
    - module 列表失败；
    - gateway 中缺少 remote 条目；
    - ontology 不可用（S-32）。
-10. **CI**：
+12. **CI**：
    - 把 `translatelint` 加入 CI，并修复当前的空翻译和 S-27 的占位文案；
    - 设置 coverage 阈值；
    - e2e 配置 persona 后改为阻塞 job，并修正 `smoke-areas.ts` 路径；
    - 为 `createRemoteApp` 的 MF1 fallback 补测试。
-11. **清理**：
+13. **清理**：
    - 删除 §11.3 列出的死代码和无用依赖；
    - 更新 §11.4 列出的文档与过时注释；
    - 修正 S-05（注意白屏陷阱）、S-07、S-08、S-10、S-11、S-21、S-22、S-23。
-12. **安全加固**：
+14. **安全加固**：
     - 评估 MerchantAccessGuard fail-open 的范围，例如只对 5xx 或网络错误放行；
     - 收紧非 production 日志中的 token 片段；
     - 复核 analytics 中的 email 和自由文本、以及 `LiveChatWidget.visitor.jwt` 是否符合安全与 PII 政策。

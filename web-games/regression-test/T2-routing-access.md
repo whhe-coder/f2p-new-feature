@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | Track | T2 路由·访问控制·项目作用域·导航（ROUTE / ACC / PROJ / NAV） |
-| 基于 spec 版本 | 0.3.2（`../web-games-account_reverse_spec.md`；P5 定向更新，变更见文末"P5 变更记录"；P4 基于 0.3.1） |
+| 基于 spec 版本 | 0.3.8（`../web-games-account_reverse_spec.md`；P11 定向更新，变更见文末"P11 变更记录"；P7 基于 0.3.4，P5 基于 0.3.2，P4 基于 0.3.1） |
 | 代码基线 | `master@772a320`（v1，`src/`） |
 | 对照分支 | `WASP-2524-migrate-tests-to-apps`（V2，`apps/web-games/src`），差异标 `[分支差异]` |
 | 生成日期 | 2026-10-21 |
@@ -206,6 +206,7 @@ flowchart TD
 | ontology 未启用 `/{m}/ontology` | `/{m}` | — | 丢弃 | `layouts/ontology/index.tsx:35-37` | RT-ACC-038 |
 | 外部 merchant `/{999}/x`（客户端导航） | `/{org0}` | 丢弃 | 丢弃 | `useMerchantAccessGuard.ts:148-160`（T1 主测） | RT-PROJ-014 |
 | 外部 merchant `/{999}/x`（整页加载） | 不改写，显示 500 HydrationError（S-34；AC-01b 期望 `/{org0}`） `[P4]` | — | — | platform-store `slices/user.ts:120-137`；platform-apis `apis/merchant.ts:106-107`（T1 RT-MAG-015 主测） | RT-PROJ-019 |
+| RT-PROJ-020 | **S-44 定向**：折叠态侧栏在项目解析前没有 Tools 组（**预期失败项**） | owner，项目 [45, 46] | 1. 打开 `/{m}/projects/46/sdk`<br>2. 刷新页面，在 loader 消失前点折叠按钮（折叠状态不持久，见 RT-NAV-005）<br>3. 项目列表返回前看图标条；项目解析完成后再看一次<br>4. 对照：展开态做同样的刷新，看 Tools 组 | **当前**：项目解析完成前（stage 上约 15 s），折叠态图标条只有 “Other tools”（Marketplace / Ontology），没有项目 Tools 组；解析完成后才出现。原因是折叠态只读 store 的 `currentProjectID`<br>**修复后**：折叠态与展开态一致，先用 URL 中的项目 id（46），Tools 组立即出现，链接指向 `/projects/46/…`<br>4：展开态先取 URL 中的 id，Tools 组更早出现（RT-PROJ-016 的修复只覆盖展开态）<br>stage 实测（R1，附录 B #7）：与“当前”一致 | P2 | OBS-NAV-002、S-44；`sidebar/index.tsx:36,46`；`project-sidebar-v2/index.tsx:96-97` [P11] | — |
 | 被拒路由 | `/forbidden` | — | 丢弃 | replace | RT-ACC-041 |
 | 未匹配路由 | `/not-found` | — | 丢弃 | `routes/not-found.tsx`；merchant/outside 由显式 `*`（`routes.tsx:149,162`）接住，`/projects`、`/verification` 子树由 `createRoute` 追加的 `*` 接住 | RT-ROUTE-004/033 |
 
@@ -240,7 +241,7 @@ flowchart TD
 | RT-ROUTE-019 | 路由数据预取 | owner，DevTools Network 打开 | 直接打开 `/{m}/documents` | 布局加载完后发出 1 次 finance documents URL 请求（`getFinanceDocumentsUrlRequest`）；页面渲染 | P2 | OBS-ROUTE-004；`Root.tsx:77-136` | `Root.test.tsx`（单测） |
 | RT-ROUTE-020 | 只改 query 不重新预取 | owner | 在 `/{m}/documents` 页把 URL 改为 `/{m}/documents?x=1`（SPA 内 push，可用 `history.pushState` 后触发 popstate 或点带 query 的内部链接） | 不再发出第二次预取请求（只比较 pathname，`Root.tsx:142`） | P2 | OBS-ROUTE-004 | — |
 | RT-ROUTE-021 | PUSH 滚动复位 | owner，页面可滚动 | ① 在 dashboard 滚到底部后点 sidebar 进入另一页；② 在 `/projects/{p}/storefront/virtual-currency/packages` 下切换子页；③ 浏览器 Back | ① 新页面回到顶部；② 不复位；③ 不复位（POP） | P2 | OBS-ROUTE-007；`Root.tsx:45,138-151` | `[分支差异]` V2 `tests/root-query-state.test.tsx:33` |
-| RT-ROUTE-022 | chrome 显隐 | owner；另准备一个没有 setup selection 的 merchant（清空 localStorage 中的 selection） | 依次打开 `/{m}/marketplace`、`/{m}/communication-hub`、`/{m}/settings/company`、`/{m}/settings/api_key`、`/{m}/profile`、`/{m}/projects/{p}/site-builder/<site>/editor`、无 selection 时的 `/{m}/get-started` | 前 5 个无 sidebar；site-builder editor 与 Choose 页无 topbar；Choose 页同时无 sidebar | P1 | OBS-ROUTE-008；`Root.tsx:158-236` | — |
+| RT-ROUTE-022 | chrome 显隐 | owner；另准备一个没有 setup selection 的 merchant（清空 localStorage 中的 selection） | 依次打开 `/{m}/marketplace`、`/{m}/communication-hub`、`/{m}/settings/company`、`/{m}/settings/api_key`、`/{m}/profile`、`/{m}/projects/{p}/site-builder/<site>/editor`、无 selection 时的 `/{m}/get-started`；最后打开 `/{m}/select-project` | 前 5 个无 sidebar；site-builder editor 与 Choose 页无 topbar；Choose 页同时无 sidebar<br>`/{m}/select-project` 没有注册路由，落到 `/not-found`（顶层 404 页）。`Root.tsx:171,202` 中按 select-project 隐藏 chrome 的分支是死代码，不作为预期<br>stage 实测（R1，RT-UI-005）：`/select-project` 落到 `/not-found` | P1 | OBS-ROUTE-008；`Root.tsx:158-236`；`Root.tsx:171,202`（死代码，spec §11.3） [P11] | — |
 | RT-ROUTE-023 | finance 内容区 padding | owner | 打开 `/{m}/finance`、`/{m}/finance/`、`/{m}/finance/reports` | 前两个无 padding；reports 有 padding | P2 | OBS-ROUTE-008；`Root.tsx:226-227` | — |
 | RT-ROUTE-024 | merchant 级 funding 只能直达 | owner | 打开 `/{m}/funding`、`/{m}/funding/requests/1` | 均渲染 funding remote；sidebar 中没有指向 merchant 级 funding 的入口 | P2 | §5；`routes.tsx:103` | `routes.test.tsx:288-293` |
 | RT-ROUTE-025 | frame 路由 | owner | 打开 `/{m}/frame/reports`；再打开 `/{m}/frame/anything-else`；最后打开 `/{m}/frame` | 前两个渲染同一个 IntegrationFrame，页面内容与 `:frame_path` 无关（参数被忽略；iframe 内容属 T4）；`/{m}/frame` 为 `/not-found` | P2 | §5（`:frame_path` 被忽略）；`routes.tsx:86` [P3] | `routes.test.tsx:292,308` |
@@ -262,7 +263,7 @@ flowchart TD
 |---|---|---|---|---|---|---|---|
 | RT-ACC-001 | 全权限账号可进所有 gated 路由 | owner（全部权限，非 gnation） | 直接打开 §2 中 #13–#17、#19–#21、#25、#33–#35、#37–#49 | 除 #25 外全部渲染页面或 remote，无 `/forbidden`<br>#25 `/{m}/metaframe`：**当前必崩（S-35，预期失败项）**，整页加载和客户端导航都显示 “Something went wrong”（Redux error #7）。stage 实测 31/32 通过，只有 #25 失败。判定：#25 单独按预期失败记录，不阻断本用例。崩溃后先整页刷新再继续，否则后续路由都显示错误页（U-14，T1 RT-ERR-008）<br>**修复后**：#25 渲染 metaframe remote（定向用例 RT-ROUTE-036） | P0 | OBS-ACC-003、S-35、§10.3 [P5] | I14 control（仅 dashboard） |
 | RT-ACC-002 | 权限加载期间显示 loader | owner；DevTools 将网络限速为 Slow 3G | 直接打开 `/{m}/documents`；再直接打开 `/{m}/get-started` | 前者在 `GET {gateway}/api/account/platform/{m}/privileges` 返回前显示 `data-id="route-privileges-loader"`；后者不显示该 loader | P1 | OBS-ACC-001；`route-access.ts:134-142`、`RouteAccessGuard.tsx:69-71` | `RouteAccessGuard.test.tsx:268-316` |
-| RT-ACC-003 | 权限请求失败后永久 loading | owner；DevTools Request blocking 拦截 `*/api/account/platform/*/privileges` | ① 直接打开 `/{m}/documents`；② SPA 内点到 `/{m}/get-started`；③ 取消拦截后不刷新，再点 Documents；④ 刷新 | ① 一直显示 loader，没有重试请求；② 正常渲染；③ 仍是 loader；④ 恢复正常 | P1 | OBS-ACC-002、S-04；`route-access.ts:136-141`；platform-store `loadPrivileges`（`index.mjs:2484-2490`） | — |
+| RT-ACC-003 | 权限请求失败后永久 loading | owner；DevTools Request blocking 拦截 `*/api/account/platform/*/privileges` | ① 直接打开 `/{m}/documents`；② SPA 内点到 `/{m}/get-started`；③ 取消拦截后不刷新，再点 Documents；④ 刷新；⑤ 保持拦截，直接打开 `/{m}/dashboard` | ① 一直显示 loader，没有重试请求；② 正常渲染；③ 仍是 loader；④ 恢复正常<br>⑤ 永久 loader 只出现在有 route privilege 的路由上。`/dashboard` 没有 route privilege，Dashboard 用空权限列表自己判断访问，跳到 `/forbidden`（**当前**；**修复后**：显示可重试的错误态，见 T1 RT-ERR-006）<br>注意：spec 0.3.8 记录的“privileges 401 时 `/dashboard` 先显示 `/forbidden` 约 2 s”与 R5 review 更正不一致（见 T1 RT-AUTH-009），本用例只用网络阻断，不用 401 | P1 | OBS-ACC-002、S-04；`route-access.ts:134-142`；`src/pages/Dashboard.tsx:130-142`；platform-store `loadPrivileges`（`index.mjs:2484-2490`） [P11] | — |
 | RT-ACC-004 | viewer 访问公司设置 | viewer（`ROLE_VIEWER`） | 直接打开 `/{m}/settings/company`；然后按 Back | URL 变 `/forbidden`；Network 中没有设置页的业务请求；Back 回到之前的页面，不回到被拒路径 | P0 | OBS-ACC-003、AC-04；`settings.ts:54` | I15 |
 | RT-ACC-005 | 被拒路由不预取 | viewer（无 `get_merchant_boxnet_url`） | 直接打开 `/{m}/documents` | URL 变 `/forbidden`；没有 finance documents URL 请求 | P0 | OBS-ACC-003、AC-04；`Root.tsx:95-100` | I15 |
 | RT-ACC-006 | viewer 有权限也被角色拦 | viewer 且持有 `merchant_get_api_key` | 直接打开 `/{m}/settings/api_key` | `/forbidden`（角色规则，与权限无关） | P1 | OBS-ACC-003(c)；`settings.ts:55-57` | `route-access.test.ts:110-129` |
@@ -359,7 +360,7 @@ flowchart TD
 | RT-NAV-024 | 存储设置预检，防 401 登出 | feature `webhookless_integration` 开启；① 有 `ps` 无 `project_webhook_storage_integration_get`；② 两者都有 | 打开任意页，看 Network 与 Settings 组 | ① 不请求 `/mapi/merchant/current/projects/{p}/webhook_storage_integration`；Webhooks/API calls 项隐藏；用户不被登出。② 请求一次；按 `isWebhookStorageEnabled` 显示 API calls 或 Webhooks；切换项目后先隐藏再按新项目显示 | P1 | OBS-NAV-004、E4；bottom nav `:259-312` | bottom nav-items-config 单测 |
 | RT-NAV-025 | Integration settings 显示条件 | ① 有 `internal_merchant_settings_get`；② 无该权限、当前项目 universal；③ 两者都无 | 看 Settings 组 | ①② 显示；③ 隐藏 | P2 | OBS-NAV-001；bottom nav `:277-286` | — |
 | RT-NAV-026 | Tickets 对受限 merchant 隐藏 | merchant 386410 或 276256 的 owner（stage 是否存在：待确认） | 看 Player support 组；直接打开 `/{m}/support/tickets` | 菜单无 Tickets；URL 可达 | P2 | OBS-NAV-001；merchant nav `:59,88` | — |
-| RT-NAV-027 | 高亮规则 | owner | 依次打开 chargeback registry 路径、`/{m}/saved-payout-methods`、`P/storefront/virtual-items/x`、`P/edit` | 分别高亮 Anti-fraud、Billing center、All items、Settings 组 | P2 | OBS-NAV-002；merchant nav `:207-208`、bottom `:112-116,181`、project `:86-103` | — |
+| RT-NAV-027 | 高亮规则 | owner | 依次整页打开 chargeback registry 路径（`/{m}/analytics/main-info/afs/chargeback-registry`）、`/{m}/saved-payout-methods`、`P/storefront/virtual-items/x`、`P/edit`；每次检查当前项和所在组的 `aria-current`、`aria-expanded` | 分别高亮 Anti-fraud、Billing center、All items、Settings 组；后 3 个路径的所在组展开<br>**chargeback registry 一项是预期失败项（S-43）**。**当前**：Anti-fraud 有 `aria-current=page`，但 Analytics 组 `aria-expanded=false`，用户看不到当前位置（merchant 组的 `matchPaths` 只取 children 的 `to`，不含 `CHARGEBACK_REGISTRY_PATH`）。**修复后**：Analytics 组展开<br>stage 实测（R1）：与“当前”一致 | P2 | OBS-NAV-002、S-43；merchant nav `:207-208`、`merchant-sidebar-v2/index.tsx:32`、bottom `:112-116,181`、project `:86-103` [P11] | — |
 | RT-NAV-028 | Settings layout 返回 | owner；admin | 进入 `/{m}/settings/company`，点 "Back to account" | 回到 `/{m}`；Administration 入口只对 admin 显示 | P2 | OBS-SET-001；`layouts/settings/index.tsx:34-37` | `layouts/settings/*.test.tsx` |
 | RT-NAV-029 | 聊天按钮 | owner | 点 topbar 聊天按钮 | push 到 `/{m}/communication-hub`（不经 support-hub），sidebar 隐藏 | P1 | OBS-ROUTE-005、E6；components 4.20.3 `index.mjs:2273-2280` | — |
 | RT-NAV-030 | 错误页的导航 | owner 已登录 | 依次打开 `/forbidden`、`/not-found`、`/error`，看 header；在 `/forbidden` 点 "To homepage" | 当前：三页 header 都是 NavigationLite，不是完整 Navigation（`authorized` 读 `state.user.id`，该字段不存在，恒为 false，S-21）；按钮到 `/{m}`（当前 merchant）。S-21 修复后应显示完整 Navigation | P2 | OBS-ERR-004、S-21；`layouts/error/{index,forbidden/index,not-found/index}.tsx:17-19`、`ErrorComponent.tsx:49,76` [P3] | — |
@@ -441,12 +442,12 @@ spec 0.3.0 已合入 E1–E16（E3、E12、E16 按上面的修正合入）。用
 | ROUTE | 8 | 8 | 001→RT-ROUTE-001~006；002→RT-ROUTE-003/004/007/033；003→009/010；004→019/020/036；005→011/012、RT-NAV-029；006→013~017；007→021；008→008/022/023 |
 | ACC | 6 | 6 | 001→RT-ACC-002；002→003；003→001/004~022/041/042；004→023~033；005→034/035；006→001/036 |
 | PROJ | 2 | 2 | 001→RT-PROJ-001~004/006~011/015/018；002→005 |
-| NAV | 4 | 4 | 001→RT-NAV-006~020/025；002→001/017/018/021~023；003→002~004/031；004→024 |
+| NAV | 4 | 4 | 001→RT-NAV-006~020/025；002→001/017/018/021~023/027、RT-PROJ-016/020；003→002~004/031；004→024 |
 | **合计** | **20** | **20** | — |
 
-另覆盖：AC-01（RT-PROJ-014，只覆盖客户端导航）、AC-01b（RT-PROJ-019，预期失败项）、AC-04、AC-05、AC-07、AC-08、AC-12（RT-ACC-027，预期失败项）；OBS-ERR-004（RT-NAV-030）；S-18（RT-ACC-027）、S-19（RT-ACC-028）、S-21（RT-NAV-030）、S-34（RT-PROJ-019）；§2.3 BFF 302 规则（RT-ROUTE-003/034）；§2.4 EnterAccountGate（RT-ROUTE-001 只记录，T1 RT-AUTH-023 主测）；D1（RT-ROUTE-026/027/028）、D2（RT-ACC-034/035）；U-04、U-07、U-08。P5 新增：S-35（RT-ROUTE-028/036、RT-ACC-001 #25，RT-ACC-019 为反证；崩溃后不恢复的 U-14 由 T1 RT-ERR-008 主测）、S-37（RT-NAV-003/031）、S-38（RT-ROUTE-008）、§2.3 `0` 哨兵（RT-PROJ-003/009/018）。
+另覆盖：AC-01（RT-PROJ-014，只覆盖客户端导航）、AC-01b（RT-PROJ-019，预期失败项）、AC-04、AC-05、AC-07、AC-08、AC-12（RT-ACC-027，预期失败项）；OBS-ERR-004（RT-NAV-030）；S-18（RT-ACC-027）、S-19（RT-ACC-028）、S-21（RT-NAV-030）、S-34（RT-PROJ-019）、S-43（RT-NAV-027，P11）、S-44（RT-PROJ-020，P11）；§2.3 BFF 302 规则（RT-ROUTE-003/034）；§2.4 EnterAccountGate（RT-ROUTE-001 只记录，T1 RT-AUTH-023 主测）；D1（RT-ROUTE-026/027/028）、D2（RT-ACC-034/035）；U-04、U-07、U-08。P5 新增：S-35（RT-ROUTE-028/036、RT-ACC-001 #25，RT-ACC-019 为反证；崩溃后不恢复的 U-14 由 T1 RT-ERR-008 主测）、S-37（RT-NAV-003/031）、S-38（RT-ROUTE-008）、§2.3 `0` 哨兵（RT-PROJ-003/009/018）。
 
-预期失败项（当前代码不满足期望，修复前不作为阻断）：RT-ACC-027（S-18、AC-12）、RT-ACC-028（S-19）、RT-PROJ-019（S-34、AC-01b）；P5 新增 RT-ROUTE-008（S-38）、RT-ROUTE-028 与 RT-ROUTE-036（S-35）、RT-ACC-001 的 #25（S-35）、RT-NAV-031（S-37）。RT-ROUTE-026/027 仍按“缺陷现状”记录（D1），修复须与 S-35 一起做。
+预期失败项（当前代码不满足期望，修复前不作为阻断）：RT-ACC-027（S-18、AC-12）、RT-ACC-028（S-19）、RT-PROJ-019（S-34、AC-01b）；P5 新增 RT-ROUTE-008（S-38）、RT-ROUTE-028 与 RT-ROUTE-036（S-35）、RT-ACC-001 的 #25（S-35）、RT-NAV-031（S-37）；P11 新增 RT-NAV-027 的 chargeback 一项（S-43）、RT-PROJ-020（S-44）。RT-ROUTE-026/027 仍按“缺陷现状”记录（D1），修复须与 S-35 一起做。
 
 ### 8.2 用例数与优先级
 
@@ -454,9 +455,9 @@ spec 0.3.0 已合入 E1–E16（E3、E12、E16 按上面的修正合入）。用
 |---|---|---|---|---|
 | ROUTE | 36 | 1 | 18 | 17 |
 | ACC | 42 | 4 | 23 | 15 |
-| PROJ | 19 | 4 | 10 | 5 |
+| PROJ | 20 | 4 | 10 | 6 |
 | NAV | 31 | 1 | 18 | 12 |
-| **合计** | **128** | **10** | **69** | **49** |
+| **合计** | **129** | **10** | **69** | **50** |
 
 自动化已固定（v1）：I4、I8、I9、I10、I11、I12、I15、D1（gold）、D2 对应的用例，以及多条单测；e2e 均为 `fixme`。`[分支差异]` V2 只迁移了 I6/I7（T1 范围）。
 
@@ -533,3 +534,22 @@ spec 0.3.1 → 0.3.2。依据：spec diff（S-35、S-37、S-38、OBS-PROJ-001 �
 | 用例 | 变更 | 原因 |
 |---|---|---|
 | RT-PROJ-009 | 修改 | OBS-AUTH-009 按 `merchant-sentinel.ts:186-247` 细化：项目哨兵在预算用完、列表失败/超时、无项目时 302 到 `/{m}/` 并丢弃路径；补入 stage Batch A2a 实测 |
+
+## P11 变更记录（spec 0.3.8）
+
+依据：spec 0.3.7 → 0.3.8 的 diff（OBS-ROUTE-008、OBS-ACC-002、S-43、S-44、§10.3 R1 / R5 / QA §4、OBS-ACC-002 行号修正），`stage-results-R1-readonly.md`（`c1b5e37`；RT-UI-005、RT-NAV-027、RT-PROJ-016、附录 B），以及 `772a320` 源码复核（`src/layouts/sidebar/index.tsx:36,46`、`src/pages/Dashboard.tsx:120-142`、`src/core/utils/dashboardAccess.ts`）。修改 3 条，新增 1 条，废弃 0 条。总数 128 → 129（P0 10 / P1 69 / P2 50）。
+
+| 用例 ID | 类型 | 原因 |
+|---|---|---|
+| RT-ROUTE-022 | 修改 | OBS-ROUTE-008：`/select-project` 没有路由，落到 `/not-found`（stage R1 证实）；`Root.tsx:171,202` 的相关分支是死代码 |
+| RT-ACC-003 | 修改 | OBS-ACC-002 收窄到有权限门槛的路由：补第 ⑤ 步，`/dashboard` 跳 `/forbidden`，不是永久 loader；行号改为 `route-access.ts:134-142`。spec 关于 401 时先显示 `/forbidden` 约 2 s 的描述与 R5 review 更正不一致，已注明，没有写入预期 |
+| RT-NAV-027 | 修改 | 新增 S-43：chargeback registry 页 Anti-fraud 高亮，但 Analytics 组保持折叠；该项改为预期失败项 |
+| RT-PROJ-020 | 新增 | 新增 S-44：折叠态侧栏在项目解析前只有 Other tools；预期失败项，写出当前预期与修复后预期 |
+
+覆盖统计变化：PROJ 19 → 20（P2 +1）。核对后未改：RT-PROJ-012（R1 PASS；topbar 切换项目会发 `POST xfe-api/accesslogs`，是写入，只读批次需要拦截）、RT-NAV-030（R1 记录的按钮文案 “Go to homepage” 与 href `{base}/` 没有被 spec 0.3.8 采纳，预期不改）、RT-NAV-028（OBS-SET-001 的改动只涉及 `/profile`，见 T3 RT-SET-011）。
+
+## P12 变更记录（spec 0.3.10）
+
+- RT-ACC-003 等：S-04 行号改为 route-access.ts:134-142（3 处）
+
+用例数量不变。

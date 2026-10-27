@@ -167,7 +167,7 @@ TL-16 **Manage 视图（TLO-08 可编辑）。** foundation F-10 规定，已完
 - 编辑走 TL-03 的同一写入模块。
 
 TL-11 **埋点。** 通过 F-15 的 `trackAdvanced` 发出 PRD 的 8 个事件和参数（依赖第 2 节“共享部分”中的 F-15 扩展）：`qsg_card_clicked`、`qsg_guide_opened`、`qsg_guide_step_viewed`、`qsg_guide_step_completed`、`qsg_guide_error`、`qsg_feature_enabled`、`qsg_offer_framing_set`、`qsg_schedule_conflict_shown`。Wave 1 gate 之前，这些事件要能在 dashboard 上看到（NFR-05）。
-- 按事件类型选方法：`qsg_guide_opened`、`qsg_guide_step_viewed` 用 `trackOpen`；`qsg_card_clicked` 和各屏 CTA 用 `trackClick`；`qsg_guide_step_completed`、`qsg_guide_error`、`qsg_feature_enabled`、`qsg_offer_framing_set`、`qsg_schedule_conflict_shown` 用 `trackCustomEvent`。F-15 的 `trackAdvanced` 要支持按事件分发到这三个方法。
+- 按事件类型选方法：foundation F-15 原有的事件（含 `qsg_card_clicked`、`qsg_guide_opened`）保持 `trackClick`，不改变 Promotions 和 Bundles 已登记的 et；新增事件中，`qsg_guide_step_viewed` 用 `trackOpen`，`qsg_guide_step_completed`、`qsg_guide_error`、`qsg_feature_enabled`、`qsg_offer_framing_set`、`qsg_schedule_conflict_shown` 用 `trackCustomEvent`。细节见 detail plan TO-03。
 - 参数只发 tracking plan 中已登记的 exv 字段（C3）。
 - `qsg_feature_enabled` 只在两次确定状态之间从 Available 变为 Live 时发出（F-08 扩展）。窗口全部到期后再次变为 Live 是否算新的 enabled，见 P11。
 - development 环境不初始化 Metrika，埋点只能在 stage 上验证。

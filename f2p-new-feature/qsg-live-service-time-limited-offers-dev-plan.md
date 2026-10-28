@@ -3,7 +3,13 @@
 - **来源 PRD：** [qsg-live-service-time-limited-offers-prd.md](qsg-live-service-time-limited-offers-prd.md)（Confluence：PRD - QSG Live-service: Time-limited offers，version 0.1，Draft）
 - **相关计划：** [advanced-foundation-detail-plan.md](advanced-foundation-detail-plan.md)（F-01 到 F-17）、[promotions-advanced-dev-plan.md](promotions-advanced-dev-plan.md)、[bundles-advanced-dev-plan.md](bundles-advanced-dev-plan.md)。共享的 Advanced 部分只在 foundation 中定义。本计划只引用 F-xx 编号，不重复定义。
 - **分支：** 待定
-- **状态：** 草稿，revision 2。等待第 1 节的待决事项和第 7 节的待确认项。
+- **状态：** 草稿，revision 4。等待第 1 节的待决事项和第 7 节的待确认项。
+- **后端 API：** [qsg-live-service-time-limited-offers-backend-api.md](qsg-live-service-time-limited-offers-backend-api.md)，列出本功能调用的全部后端 API 和探测计划。
+- **Revision 4：** 对照 Xsolla 公开 API 文档修订（未在 stage 实测）。改动：
+  - discount 接口在 `/v3/project/{id}/admin/promotion/item`，不在 `/v2`。时段字段是 `promotion_periods`；没有 group 目标，也没有 `external_id`。
+  - 文档写的鉴权是 basicAuth。“不需要新的鉴权方式”改为待验证（C1）。
+  - overlap 要处理按 `price_conditions` 和 `attribute_conditions` 生效的 discount（TL-07）。
+  - C1、C2 改为只列文档没有回答的问题；新增 C8（`periods` 是售卖期还是可见期）；更新 P6 的默认值。
 - **Revision 3：** 对照 free-to-play-pc `specs/` 下的 reverse spec 修订。改动：
   - 写明 F-03 的持久化契约。
   - 重试差集改为以服务端数据为准；promotion 幂等标记改为确定性 hash。
@@ -35,8 +41,8 @@ Get Started 引擎的现状（单一 current setup、`SelectionScreen` 重定向
 | `periods` 字段 | virtual item、VC package、bundle 的 payload 中类型都是 `unknown[]`（`catalog.ts:79`、`:147`、`:188`）。game key 没有 `periods`（`:243`）。现有 setup 写入时总是 `[]`（`sell-virtual-goods/itemPayload.ts:138`）。没有代码读取它。导入模板给出了元素结构：`{date_from, date_until}`，值是带时区偏移的 ISO-8601（`sell-virtual-goods/import-template.json:43-48`）。 | 按模板的结构实现。C2 只需要在 admin PUT 上确认这个结构。 |
 | Catalog 写入 | `updateVirtualItem`、`updateVirtualCurrencyPackage`、`updateBundle`（`catalog.ts:604`、`:665`、`:692`）都要求传入**完整 payload**。没有只改部分字段的 API。VC package 的 PUT 路径**未经验证**，可能实际在 /mapi 网关上（`catalog.ts:658-664`）。 | 写入 `periods` 时，需要先读取完整的原始 item，再整体写回（TL-03）。50 个条目逐个 PUT，**无法原子写入**（P3）。VC package 的写入在 C2 确认前可能 404。 |
 | VC package 类型 | VC package 在列表中显示为 `type: 'bundle'`、`bundle_type: 'virtual_currency_package'`（`catalog.ts:431-437`）。未打包的 VC 定义显示为 `type: 'virtual_currency'`。 | 第 1 屏要排除未打包的 VC，保留 VC package（TLO-04）。 |
-| Promotions | 没有 Promotions 或 discount 的 API client。侧栏的 Promotions 链接指向 `storefront` remote 的子路由 `/projects/${projectId}/storefront/promotions`（`layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:226`）。Promotions 计划 2.2 准备新建只读 client `core/apis/promotions.ts`，但它的 `PromotionRef` 只有 `{id, kind, isActive, name?}`（promotions-advanced-detail-plan.md:121-123）。 | 本功能需要在这个 client 上**加写入方法**（创建 discount promotion），并扩展读取：时段、目标条目和 group、折扣值。没有这些字段就无法计算 overlap（TL-06、TL-07）。 |
-| API host | Store API 使用 `storeInstance`，带 PA bearer token（`core/apis/store-instance.ts:18`），host 为 `config.storeApiUrl`（`src/config.ts:22-24`）。 | Promotions 的写入和 overlap 读取使用同一个 instance，不需要新的鉴权方式。 |
+| Promotions | 没有 Promotions 或 discount 的 API client。侧栏的 Promotions 链接指向 `storefront` remote 的子路由 `/projects/${projectId}/storefront/promotions`（`layouts/sidebar/project-sidebar-v2/nav-items-config.tsx:226`）。Promotions 计划 2.2 准备新建只读 client `core/apis/promotions.ts`，但它的 `PromotionRef` 只有 `{id, kind, isActive, name?}`（promotions-advanced-detail-plan.md:121-123）。`feat/advanced-guides-first-batch` 上的实现假设 discount 列表在 `/v2/.../admin/promotion/item`，公开文档给出的是 `/v3/project/{id}/admin/promotion/item`（后端 API 文档 B1）。 | 本功能需要在这个 client 上**加写入方法**（创建 discount promotion），并扩展读取：时段（`promotion_periods`）、目标条目（`items[].sku`）、价格和属性条件、折扣值。文档中没有 group 目标字段。没有这些字段就无法计算 overlap（TL-06、TL-07）。 |
+| API host | Store API 使用 `storeInstance`，带 PA bearer token（`core/apis/store-instance.ts:18`），host 为 `config.storeApiUrl`（`src/config.ts:22-24`）。catalog admin 接口用 bearer 已经跑通。 | Promotions 的写入和 overlap 读取计划使用同一个 instance。**但公开文档写的鉴权是 basicAuth**，bearer 能否调 `/v3` promotion 接口未验证（C1）。不能时需要网关或后端代理。 |
 | 埋点 | 只有 Metrika，事件名在 `platform-events.ts:32-67`，没有 `qsg_*` 事件。`platform-analytics.ts` 按事件类型分方法：`trackOpen`（et=1，:22）、`trackClick`（et=3，:36）、`trackCustomEvent`（et=5，:43）。参数通过 `exv` 传出，但 tracking plan 的 exv 列是严格契约，没登记的字段会被 analytics QA 拒绝（:12）。Metrika 只在 `METRIKA_COUNTER_ID` 非空且不是 development 环境时初始化（spec 15 XPL-INFRA-005）。 | 8 个事件和参数要先登记进 tracking plan（C3）。只能在 stage 上验证埋点（TL-11）。 |
 | Feature flag | Get Started 中没有 feature flag。其他地方使用 `@accounts-sdk/platform-store` 的 `selectEnabledFeatureByName` 和 `FEATURES.*`（例如 `routes/useSectionBasedRestrictions.ts:26-32`）。 | Wave 1 需要按账户开关的 flag。flag 名和配置由后端提供（C4）。项目规则禁止修改 SDK。 |
 | 权限 | 财务和 Support 系列角色在 Get Started 路由会被转到 `/forbidden`（`core/utils/projectAccess.ts:9-27`，spec 05 GS-ROUTE-006）。能进入 Get Started 的 Owner、Developer、Junior Developer 对 Items catalog 和 LiveOps 都有编辑权限（spec 15:130-132）。但存在按 section 受限的角色：`items_catalog_only_role`、`liveops_only_role`（`routes/useSectionBasedRestrictions.ts:25-43`，spec 15 XPL-ROUTE-007）。Viewer 能进入 Get Started。**没有只读模式。** | NFR-04 的只读人群是 Viewer 和按 section 受限的角色，不是财务或 Support（TL-10）。 |
@@ -132,8 +138,9 @@ TL-07 **第 4 屏 Review calendar。**
 - 日历显示新 offer 和窗口内已有的 discount，范围是同一条目或同一 group（TLO-02、TLO-07）。
 - 有重叠时，该行用警告色，并配文字说明（NFR-06）。同时显示一条警告通知，写出两个活动的名称。重叠只是警告，不阻止确认。
 - 没有其他 schedule 时，只显示新 offer 和 "No overlaps"。
-- DEP-1 交付之前，overlap 用降级方案在前端计算：读取 discount 列表和所选条目的 group，按时间求交集（P6）。查询只针对所选条目及其 group，并在本次 guide 会话内缓存（PRD 风险缓解）。
-- 降级方案需要每个 discount 的起止时间、目标条目和 group、折扣值和名称。这些字段要加入 Promotions 读取 client（C1）。折扣值用来按 "largest discount wins" 说明实际生效的价格（TLO-07）。
+- DEP-1 交付之前，overlap 用降级方案在前端计算：读取 discount 列表，按所选条目和时间求交集（P6）。discount 列表没有过滤参数，只能全量分页读取一次，并在本次 guide 会话内缓存（PRD 风险缓解）。
+- 降级方案需要每个 discount 的时段（`promotion_periods`，可能有多个）、目标条目（`items[].sku`）、价格和属性条件、折扣值、名称和 `is_enabled`。这些字段要加入 Promotions 读取 client（C1）。折扣值用来按 "largest discount wins" 说明实际生效的价格（TLO-07）。
+- 按 `price_conditions` 生效的 discount 不列 SKU，v1 判为“可能重叠”；带 `attribute_conditions` 的 discount 标为“对部分玩家生效”。否则会漏报。
 - 本 run 通过 TL-03a 创建的 promotion，不计入重叠。
 
 TL-08 **第 5 屏 Go live。**
@@ -191,7 +198,7 @@ TL-17 **Go online 排除窗口外的条目。** sell-virtual-goods 的 `isTestPu
 
 | 层级 | 测试目标 |
 |---|---|
-| Unit | 第 1 屏过滤：排除未打包的 VC 和 `unit`（game key），保留 VC package，最多 50 个；窗口校验：结束早于开始时报错，短于 1 小时时警告；时区切换后 UTC 存储值不变；TL-03 只替换 `periods`、保留其他所有字段，任一条目校验失败时不发出写请求，中途失败时回滚已写入的条目，重试只补写差集，自己写入的条目不报冲突，他人修改时提示；TL-03 清单丢失时，重试按服务端值与目标值的差集补写；TL-03a 已存在相同确定性标记的 promotion 时不重复创建，标记与 `runId` 无关，promotion 失败时 `periods` 保留；F-03 新字段经过 parse 和 allow-list 后能落盘，缺少字段时取默认值，`SCHEMA_VERSION` 不变；F-08 `liveRule` 失败时保留上一次的确定状态；TL-10 两项能力：只有 item 写权限时 discount 禁用，Viewer 全部只读；TL-17 窗口外的条目不是测试购买候选，`periods` 为空的条目仍是候选；overlap 计算：同一条目、同一 group、边界相接、无重叠、本 run 的 promotion 不计入；Live 规则：已结束的时段不算 Live；F-07 扩展：`(incomplete, true)` → `live`，`(incomplete, false)` → `available`，`(unknown, false)` → `available`；F-02 `form` 步骤：主 CTA 成功即完成；TL-15：更新已有 item 时 `periods` 不变 |
+| Unit | 第 1 屏过滤：排除未打包的 VC 和 `unit`（game key），保留 VC package，最多 50 个；窗口校验：结束早于开始时报错，短于 1 小时时警告；时区切换后 UTC 存储值不变；TL-03 只替换 `periods`、保留其他所有字段，任一条目校验失败时不发出写请求，中途失败时回滚已写入的条目，重试只补写差集，自己写入的条目不报冲突，他人修改时提示；TL-03 清单丢失时，重试按服务端值与目标值的差集补写；TL-03a 已存在相同确定性标记的 promotion 时不重复创建，标记与 `runId` 无关，promotion 失败时 `periods` 保留；F-03 新字段经过 parse 和 allow-list 后能落盘，缺少字段时取默认值，`SCHEMA_VERSION` 不变；F-08 `liveRule` 失败时保留上一次的确定状态；TL-10 两项能力：只有 item 写权限时 discount 禁用，Viewer 全部只读；TL-17 窗口外的条目不是测试购买候选，`periods` 为空的条目仍是候选；overlap 计算：同一条目、价格条件 discount 判为可能重叠、属性条件 discount 标为部分玩家、多个时段、停用的 discount 不计入、边界相接、无重叠、本 run 的 promotion 不计入；Live 规则：已结束的时段不算 Live；F-07 扩展：`(incomplete, true)` → `live`，`(incomplete, false)` → `available`，`(unknown, false)` → `available`；F-02 `form` 步骤：主 CTA 成功即完成；TL-15：更新已有 item 时 `periods` 不变 |
 | Component | 卡片在没有 web shop 时仍为 Available，CTA "Set up"；没有 team-engagement 警告；overview 先于任何表单字段显示；"step 3 of 5" 与 3/5 进度条；各屏 CTA 文案；第 4 屏警告色配文字；成功页加 "What's next?"；只读横幅和禁用的写操作；loading、empty、error 三种状态 |
 | State | 在第 3 屏离开、第二天返回，guide 打开到第 3 屏且保留已填的值；打开 guide 不改变 `currentSetupId`；确认后下一次加载卡片显示 Live；Available → Live 转变时发出一次 `qsg_feature_enabled`，之后不重复；Live 卡片的 "Open" 进入 manage 视图，已开始的 schedule 只读 |
 | API client | Promotions 写入 client 和 catalog 原始 item 读取，用 `vi.mock` 测试请求形状 |
@@ -270,7 +277,7 @@ TL-17 **Go online 排除窗口外的条目。** sell-virtual-goods 的 `isTestPu
 | P3 | 50 个条目无法原子写入。失败后回滚已写入的条目，是否满足“no partial write”？ | 边界情况“网络中断” | 接受“失败即回滚”的方案；回滚本身也失败时，列出未恢复的条目 | TL-03 |
 | P4 | 原型中有 "Repeat this window" 开关，但没有对应的需求和验收标准。v1 是否包含？ | UX 第 2 屏 | v1 不显示 | TL-05 |
 | P5 | Badge text 和 countdown 存在哪里：promotion、item 属性，还是 storefront 配置？ | TLO-06、UX 第 3 屏 | 确认之前这两个字段只出现在预览中，不写入 | TL-06 |
-| P6 | overlap 中的 "group" 指 catalog item group 吗？discount 能否以 group 为目标？ | TLO-02、TLO-07 | 指 catalog item group；group 级 discount 能读到时才计入 | TL-07 |
+| P6 | overlap 中的 "group" 指 catalog item group 吗？discount 能否以 group 为目标？ | TLO-02、TLO-07 | 公开文档中 discount 没有 group 目标字段，v1 只判 SKU 级和价格条件重叠。PRD 验收例子是 SKU 级重叠，已覆盖。如果“同 group 内其他条目上的 discount”也算，需要 PRD owner 明确 | TL-07 |
 | P7 | 条目原有的 `periods` 如何处理：替换，还是追加一个窗口？ | TLO-05 | 替换；第 1 屏的 "Visibility now" 显示原有时段 | TL-03 |
 | P8 | 卡片 Live 后，"Open" 打开什么？schedule 管理页、guide，还是 catalog？ | CARD-04、TLO-08 | 打开 manage 视图（TL-16），可以编辑尚未开始的 schedule。不进入 guide，因为 foundation 对已完成的 run 会新建 run | TL-01、TL-16 |
 | P9 | GDE-04 要求左侧导航对应项高亮。第 2–5 屏属于 "Items catalog"，但 guide 在 Get Started 路由下。需要高亮 "All items" 吗？ | GDE-04（Should） | 只显示面包屑，导航仍高亮 Get Started | F-10 |
@@ -281,8 +288,9 @@ TL-17 **Go online 排除窗口外的条目。** sell-virtual-goods 的 `isTestPu
 
 | 编号 | 问题 | 阻塞 |
 |---|---|---|
-| C1 | Promotions discount 的创建 API：endpoint、payload（条目、百分比、时段）、是否支持 group，以及可用于幂等的名称或外部 id 字段。读取 API 能否返回每个 discount 的起止时间、目标条目和 group、折扣值 | TL-03a、TL-06、TL-07 |
-| C2 | 在 admin PUT 上确认 `periods` 的结构 `{date_from, date_until}`（ISO-8601 带偏移，来自 `import-template.json:43-48`）；读取单个完整原始 item 的 endpoint；VC package 的 PUT 路径（`catalog.ts:658-664` 注明未经验证，可能在 /mapi 网关上）。后两项 spec 没有答案（spec 11:59 把 catalog API 列为未观测） | TL-02、TL-03、TL-15 |
+| C1 | 公开文档已给出 `/v3` 的 discount 读取、创建、更新、删除接口和字段（后端 API 文档 B1–B5）。剩下：① PA bearer token 能否调 `/v3` promotion 接口、CORS 是否放行（文档写 basicAuth）；② 没有 `external_id`，幂等标记放在 `name` 是否可以接受；③ 是否支持 group 目标 | TL-03a、TL-06、TL-07 |
+| C2 | 公开文档已给出：单条读取 endpoint（三种类型）；VC package 的 PUT 就在 Store API 的 `/v2/.../virtual_currency/package/sku/{sku}`；`periods` 为 `{date_from, date_until}`，两者都可为 `null`（后端 API 文档 A2、A3）。剩下：GET 响应能否直接作为 PUT body；哪些字段只读；VC package 的 PUT 是否整体替换。都要在 stage 实测 | TL-02、TL-03、TL-15 |
+| C8 | 文档把 `periods` 描述为 "Item sales period"。窗口外的条目在 storefront 上是隐藏，还是可见但不能买？PRD 要求“只在窗口内可见” | TL-02、第 1 屏文案、CARD-01 描述 |
 | C3 | 在 tracking plan 中登记 8 个 `qsg_*` 事件、事件类型（et）和 exv 参数；NFR-01、NFR-02 的 p95 由谁测量 | TL-11 |
 | C4 | Wave 1 用的 feature flag 名称、按账户开启的方式，以及由谁配置 | TL-12 |
 | C5 | **已由 spec 回答：** 使用 `/${merchantId}/projects/${projectId}/storefront`（spec 11:15、`sell-virtual-goods/config.tsx:51`）。只剩一个问题：面包屑 "Items catalog / Schedule offers" 中的 "Items catalog" 是否链接到这个路径 | F-10 |

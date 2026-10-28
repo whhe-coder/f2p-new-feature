@@ -115,6 +115,7 @@ flowchart TD
 - **预估：** 1 人天（风险：中。client；真实 endpoint 接入另加约 0.5，等 R2）
 - **对应：** 上级计划 2.2；PRD R2。
 - **输入：** R2：Catalog 团队提供的 promotions 列表 endpoint（**阻塞真实实现**）。`src/core/apis/` 里没有 promotions、discount、coupon 文件。client 写法参考 `core/apis/catalog.ts`（`store-instance` 的 `get/post`，测试 `vi.mock('./store-instance', …)`）。
+- **与公开文档的出入（2026-10-28 核对，未在 stage 实测）：** `feat/advanced-guides-first-batch` 上的实现假设 discount 列表在 `/v2/project/{id}/admin/promotion/item`，行字段为 `date_start` / `date_end`。Xsolla 公开文档给出的是 `GET /v3/project/{project_id}/admin/promotion/item?limit=&offset=`，时段字段是 `promotion_periods[]`（`date_from`，`date_until` 可为 `null`），另有 `is_enabled`。文档写的鉴权是 basicAuth，PA bearer token 能否调用未验证。bonus、promocode、coupon 的路径是否也在 `/v3`，还没核对。R2 关闭或探测确认后，改 `PROMOTION_LIST_PATHS` 和 `normalizePromotion`。细节见 [qsg-live-service-time-limited-offers-backend-api.md](qsg-live-service-time-limited-offers-backend-api.md) 的 B1。
 - **输出：** `src/core/apis/promotions.ts`（只读）：
   ```ts
   type PromotionKind = 'discount' | 'bonus' | 'promocode' | 'coupon';
@@ -341,7 +342,7 @@ flowchart TD
 
 | 编号 | 需要什么 | 谁答复 | 影响的步骤 | 答复前的做法 |
 |---|---|---|---|---|
-| R2 | promotions 列表 endpoint 与响应形状 | Catalog 团队 | PR-04、PR-05、PR-07、PR-08 | 接口加 mock 测试；真实 endpoint 的测试 skip |
+| R2 | promotions 列表 endpoint 与响应形状。公开文档中 discount 列表在 `/v3`，与现有实现假设的 `/v2` 不符（见 PR-04）；还要确认 PA bearer token 能否调用 | Catalog 团队 | PR-04、PR-05、PR-07、PR-08 | 接口加 mock 测试；本地 `pnpm dev:stage` 探测；真实 endpoint 的测试 skip |
 | C3 | Promotions 权限名 | 账户负责人 | PR-02 | 占位权限名；实现 skip |
 | Q4/Q6/P5 | Live 规则 | PRD owner | PR-05 | 默认值见 PR-05 |
 | D3-FR15 | 排期到未来的 promotion 不让 Guide 1 前进（PRD 字面结果） | PRD owner | PR-07 | **已定：按 PRD 字面实现**。备选 B（已排期也算完成）、C（字面加提示）见 PR-07 |

@@ -4,7 +4,13 @@
 - **PRD：** [qsg-live-service-time-limited-offers-prd.md](qsg-live-service-time-limited-offers-prd.md)
 - **共享基础：** [advanced-foundation-detail-plan.md](advanced-foundation-detail-plan.md)（步骤 `F-xx`）。本文只写本功能的步骤 `TO-xx`。TO-01 到 TO-03 是本功能要求的 foundation 扩展，代码落在 foundation 的文件里。
 - **范围：** 只含 `free-to-play-pc`。Premium PC 不显示本卡片（PRD CARD-01）。
-- **状态：** 草稿，revision 2。每步的格式见基础文档的“阅读方法”（输入、输出、要点、先写的测试、完成标准）。
+- **状态：** 草稿，revision 3。每步的格式见基础文档的“阅读方法”（输入、输出、要点、先写的测试、完成标准）。
+- **后端 API：** [qsg-live-service-time-limited-offers-backend-api.md](qsg-live-service-time-limited-offers-backend-api.md)（编号 A1–A4、B1–B5、C1–C2、D1–D3）。
+- **Revision 3：** 对照 Xsolla 公开 API 文档修订（未在 stage 实测）：
+  - TO-09：discount 接口改为 `/v3/project/{id}/admin/promotion/item`；字段改为 `promotion_periods`、`discount.percent`（字符串）、`items[].sku`；没有 group 目标和 `external_id`，marker 只能放在 `name`。
+  - TO-10：去掉 `via: 'group'`；新增按 `price_conditions` 和 `attribute_conditions` 生效的 discount 的处理；多个 `promotion_periods` 逐个求交集；`is_enabled: false` 不计入。
+  - TO-04、TO-05：`date_from` 也可能为 `null`；单条读取的 endpoint 按文档填入；写回前去掉系统计数字段。
+  - 新增待确认项：PA bearer token 能否调 `/v3` promotion 接口（文档写 basicAuth）；`periods` 是售卖期还是可见期。
 - **Revision 2：** 按新上下文 reviewer 的审查修订：
   - 第 5 屏的完成条件加上“已确认”和“promotion 已处理”。
   - TO-06 改为 C2 关闭后才合并。
@@ -207,7 +213,9 @@ flowchart TD
     periodsEqual(a: StorePeriod[], b: StorePeriod[]): boolean        // 按时间点比较，不按字符串
     ```
 - **要点：**
-  - `date_until` 为 `null` 时表示没有结束时间。这一点要在 C2 中确认；确认前，按“没有结束时间”处理并写注释。
+  - `date_until` 为 `null` 时表示没有结束时间。公开文档把 `date_from` 和 `date_until` 都标为 `string | null`。`date_from` 为 `null` 时按“没有开始时间”（已开始）处理。两者都要在 C2 中确认，确认前写注释。
+  - 文档把 `periods` 描述为 "Item sales period"（售卖期）。窗口外的条目在 storefront 上是隐藏还是只是不能买，待 C8 确认。`isWithinAnyPeriod` 的命名不受影响，"Visibility now" 列的文案受影响。
+  - 列表响应（A1）是否返回完整的 `periods` 和 `groups`，要在探测第 1 轮确认。不完整时，Live 判断和第 1 屏要改为按需调用 TO-05 的单条读取。
   - 比较时间时一律转成毫秒时间戳。不同偏移的同一时间点相等。
   - 现有 setup 写入 `periods: []` 的代码只改类型，不改行为（行为由 TO-06 处理）。
 - **先写的测试：** `catalog.test.ts`（追加）、`periods.test.ts`
@@ -220,7 +228,12 @@ flowchart TD
 
 - **预估：** 0.75 人天（风险：中。单条读取的 endpoint 未确认）
 - **对应：** TL-03、TL-15 的共同基础；C2；`catalog.ts:604`、`:665`、`:692`（三个 `update*`）、`:658-664`（VC package PUT 路径未验证）。
-- **输入：** TO-04。C2：单条原始 item 的读取 endpoint（**阻塞真实实现**）。
+- **输入：** TO-04。C2：单条原始 item 的读取 endpoint。公开文档给出（后端 API 文档 A2），还要在 stage 上用 PA bearer token 实测：
+  ```
+  GET /v2/project/{project_id}/admin/items/virtual_items/sku/{item_sku}
+  GET /v2/project/{project_id}/admin/items/bundle/sku/{sku}
+  GET /v2/project/{project_id}/admin/items/virtual_currency/package/sku/{item_sku}
+  ```
 - **输出：** `catalog.ts`：
   ```ts
   type SchedulableKind = 'virtual_good' | 'bundle' | 'virtual_currency_package';
@@ -232,8 +245,9 @@ flowchart TD
 - **要点：**
   - **不能**用 `normalizeCatalogItem` 的结果写回，它会丢字段。写回的 payload 必须来自 `getRawCatalogItem`。
   - `withPeriods` 不修改入参，返回新对象。
-  - 只读字段（例如服务端生成的 id、时间戳）如果 PUT 不接受，在 `withPeriods` 中去掉。字段清单以 C2 的答复为准。
-  - VC package 的 PUT 路径在 C2 确认前保持现状，并写注释。stage 走查必须包含 VC package。
+  - 只读字段（例如服务端生成的 id、时间戳）如果 PUT 不接受，在 `withPeriods` 中去掉。字段清单以 C2 的答复为准。候选：`limits.per_item` 中的 `available`、`reserved`、`sold`（文档未标只读，看起来由系统维护）。
+  - VC package 的 PUT 路径：公开文档给出的就是现有代码的 Store API 路径 `/v2/.../virtual_currency/package/sku/{item_sku}`，不是 `/mapi`。实测通过前保留代码注释。stage 走查必须包含 VC package。
+  - VC package 的文档没有说明 PUT 是否整体替换。探测第 2 轮要验证：省略可选字段时是清空还是保留。
   - C2 未答复时：写接口和 mock 测试，响应形状的假设写在注释里。真实 endpoint 接入前，不得合并为“已实现”。
 - **先写的测试：** `catalog.test.ts`（追加）
   - `withPeriods` 只改变 `periods`，其余字段深度相等；入参不变。
@@ -317,17 +331,28 @@ flowchart TD
 
 - **预估：** 1 人天（风险：中。endpoint 未确认）
 - **对应：** TL-03a、TL-06、TL-07；C1；P10。Promotions 详细计划 PR-04 的 `core/apis/promotions.ts`。
-- **输入：** PR-04 已完成（或在本步一起建立该文件）。C1：discount 的读取字段和创建 endpoint（**阻塞真实实现**）。
+- **输入：** PR-04 已完成（或在本步一起建立该文件）。C1：discount 的读取字段和创建 endpoint。公开文档给出（后端 API 文档 B1–B3），还要在 stage 上用 PA bearer token 实测：
+  ```
+  GET  /v3/project/{project_id}/admin/promotion/item?limit=&offset=   列表，无过滤参数
+  GET  /v3/project/{project_id}/admin/promotion/{promotion_id}/item   单条
+  POST /v3/project/{project_id}/admin/promotion/item                 创建，201 → { promotion_id }
+  ```
+  **注意：** 文档写的鉴权是 basicAuth。PA bearer token 能否调这些接口、CORS 是否放行，是 C1 的第一个问题（C1①）。不能时，前端无法直连，本步和 TO-10 的方案都要改。
 - **输出：** `src/core/apis/promotions.ts` 追加：
   ```ts
   interface DiscountDetail {
-    id: string | number; name: string; percent: number;
-    period: { from: string; until: string | null };
-    targetSkus: string[]; targetGroups: string[];
-    marker?: string;                      // 本功能写入的确定性标记
+    id: number; name: string; percent: number;   // 文档中 discount.percent 是字符串，在 normalize 中转成数字
+    periods: StorePeriod[];                       // 来自 promotion_periods，可能有多个
+    targetSkus: string[];                         // 来自 items[].sku；items 为 null 时为 []
+    hasPriceConditions: boolean;                  // items 为 null、改用 price_conditions 时为 true
+    hasAttributeConditions: boolean;              // attribute_conditions 非空时为 true
+    isEnabled: boolean;
+    excludedPromotions: number[];
+    marker?: string;                              // 从 name 中解析出的本功能标记
   }
   listDiscountDetails(projectId): Promise<DiscountDetail[]>;
-  createDiscountPromotion(projectId, input: { name: string; percent: number; period: StorePeriod; skus: string[]; marker: string }): Promise<{ id: string | number }>;
+  createDiscountPromotion(projectId, input: { name: string; percent: number; period: StorePeriod; skus: string[]; marker: string }): Promise<{ id: number }>;
+  // 请求体：{ name: { 'en-US': `${name} ${formatMarker(marker)}` }, promotion_periods: [period], discount: { percent: String(percent) }, items: skus.map(sku => ({ sku })), is_enabled: true }
   // TLO 内
   discountMarker(input: { guideId: string; skus: string[]; window: StorePeriod; percent: number }): string;   // 排序后的 SKU + 窗口 + 折扣值的稳定 hash
   ensureDiscountPromotion(projectId, input): Promise<{ id: string | number; created: boolean }>;  // 先按 marker 查找，存在则复用
@@ -337,11 +362,15 @@ flowchart TD
   - `discountMarker` 不使用 `runId`。本地状态丢失后会生成新的 `runId`，标记就失效了。
   - marker 包含折扣值。否则伙伴把同一组 SKU、同一窗口的折扣从 10% 改成 20% 时，会复用旧的 10% promotion，成功页显示 20%，实际生效的是 10%。
   - `ensureDiscountPromotion` 复用前再比较一次折扣值和 SKU 集合，不一致时视为冲突，不复用。
-  - marker 放在 promotion 的哪个字段（名称后缀或外部 id），由 C1 决定。放在名称里时，格式要短，并且对伙伴可读。
+  - 文档中 promotion 没有 `external_id` 字段，marker 只能作为名称后缀，例如 `[tlo:3f9a1c]`。格式要短，并且对伙伴可读。名称是伙伴可见、可编辑的字段：伙伴改名去掉后缀后，幂等查找会失效，最坏结果是重试时多建一个 promotion。这需要 Promotions 团队认可（C1②）。
+  - 文档中 discount 没有 group 目标字段，只能按 SKU 创建（P6）。
+  - `listDiscountDetails` 没有过滤参数，只能全量分页拉取（limit 200、短页停止，同 PR-04）。
+  - `discount.percent` 是字符串。解析失败的行丢弃，不抛错。
   - **P10 默认：** `periods` 已写成功、promotion 创建失败时，保留 schedule，只重试 promotion。
   - C1 未答复时：写接口和 mock 测试，假设写在注释里。
 - **先写的测试：** `promotions.test.ts`（追加）、`discountMarker.test.ts`
-  - `listDiscountDetails` 的映射：多页、空、无效项过滤、HTTP 错误上抛。
+  - `listDiscountDetails` 的映射：多页、空、无效项过滤、HTTP 错误上抛；`percent` 从字符串转数字；`items: null` + `price_conditions` → `targetSkus: []`、`hasPriceConditions: true`；多个 `promotion_periods` 全部保留；从 `name` 解析 marker。
+  - `createDiscountPromotion` 的请求体：`percent` 为字符串；`name` 带 marker 后缀；`items` 为 `{sku}` 数组。
   - `discountMarker`：SKU 顺序不同 → 结果相同；窗口不同 → 结果不同；折扣值不同 → 结果不同；时间偏移不同、时间点相同 → 结果相同。
   - `ensureDiscountPromotion`：已有相同 marker → 不调用 create，`created: false`；没有 → 调用一次。
   - 真实 endpoint 的契约测试写成 `it.skip`，启用条件：C1 关闭。
@@ -360,20 +389,34 @@ flowchart TD
     discounts: DiscountDetail[];
     excludeMarker?: string;          // 本次自己的 promotion 不计入
   }): Overlap[];
-  interface Overlap { sku: string; discount: DiscountDetail; via: 'sku' | 'group'; from: string; until: string | null; effectivePercent: number }
+  interface Overlap {
+    sku: string; discount: DiscountDetail;
+    via: 'sku' | 'price_condition';   // price_condition：discount 按价格匹配，不列 SKU，只能判为“可能重叠”
+    conditional: boolean;             // discount 带 attribute_conditions，只对部分玩家生效
+    from: string; until: string | null; effectivePercent: number;
+  }
   ```
-  以及 `TLO/useOverlapData.ts`：只为所选条目及其 group 读取 discount，并在本次 guide 会话内缓存。
+  以及 `TLO/useOverlapData.ts`：discount 列表没有过滤参数，只能全量分页读取一次，在本次 guide 会话内缓存，再在前端按所选条目过滤。
 - **要点：**
   - 时间求交集时，边界相接（一个的结束等于另一个的开始）不算重叠。
   - `effectivePercent`：同一条目上多个 discount 重叠时，取最大值（PRD TLO-07 “largest discount wins”）。只用于说明，不改变任何数据。
-  - **P6 默认：** group 指 catalog item group，只有 `targetGroups` 能读到时才计入。
+  - **P6 默认（revision 3 修改）：** 公开文档中 discount 没有 group 目标字段，所以不生成 `via: 'group'`。PRD TLO-02 的验收例子（Shards packages 上的周末促销）是 SKU 级重叠，已覆盖。如果 PRD owner 的意思是“同 group 内其他条目上的 discount 也算”，再加一种 `via`，`offers[].groups` 先保留。
+  - `items` 为 `null`、改用 `price_conditions` 的 discount：v1 不在前端计算价格条件，对所有所选条目判为 `via: 'price_condition'`，警告文案写“可能适用”。否则会漏报。
+  - 带 `attribute_conditions` 的 discount：照常判断 SKU 和时间，`conditional: true`，警告文案写“对部分玩家生效”。
+  - 一个 discount 有多个 `promotion_periods` 时，逐个与窗口求交集，每个交集生成一条 `Overlap`。
+  - `isEnabled: false` 的 discount 不计入。
+  - `effectivePercent` 只取最大值，不考虑 `excluded_promotions`。互斥规则的真实效果以 Promotions 的逻辑为准，界面只做说明。
   - **OD4 默认：** 读到的所有 discount 都计入，不区分是否由 guide 创建。
   - DEP-1 交付后，`useOverlapData` 改用后端查询，`findOverlaps` 的接口不变。
 - **先写的测试：** `overlap.test.ts`、`useOverlapData.test.tsx`
-  - 同一 SKU 重叠；通过 group 重叠；边界相接不重叠；完全不重叠；`date_until` 为 `null`。
+  - 同一 SKU 重叠；边界相接不重叠；完全不重叠；`date_until` 为 `null`。
+  - `items: null` + `price_conditions` 的 discount 时间重叠 → 每个所选条目一条 `via: 'price_condition'`。
+  - 带 `attribute_conditions` 的 discount → `conditional: true`。
+  - 多个 `promotion_periods`，其中两个与窗口相交 → 两条 `Overlap`。
+  - `isEnabled: false` 的 discount 不计入。
   - 两个 discount 同时重叠时，`effectivePercent` 取最大值。
   - `excludeMarker` 的 discount 不计入；同一 SKU 和窗口、但折扣值不同的旧 discount 仍计入重叠。
-  - 同一会话内重复打开第 4 屏，不重复请求。
+  - 同一会话内重复打开第 4 屏，不重复请求（全量列表只拉一次）。
   - DEP-1 的后端查询测试写成 `it.skip`，启用条件：DEP-1 交付。
 - **完成标准：** 测试通过。
 
@@ -670,8 +713,9 @@ flowchart TD
 
 | 编号 | 需要什么 | 谁答复 | 影响的步骤 | 答复前的做法 |
 |---|---|---|---|---|
-| C1 | discount 的读取字段（时段、目标、折扣值）、创建 endpoint、marker 放在哪个字段 | Promotions 团队 | TO-09、TO-10、TO-15、TO-16 | 接口加 mock 测试；真实 endpoint 的测试 skip |
-| C2 | 单条原始 item 的读取 endpoint；PUT 中哪些字段只读；VC package 的 PUT 路径；`date_until` 能否为 `null` | Catalog / Store API 团队 | TO-04、TO-05、TO-06、TO-08 | 按导入模板的结构实现；真实 endpoint 的测试 skip；stage 走查必须包含 VC package |
+| C1 | 公开文档已给出 `/v3` 的读取和创建接口及字段（后端 API 文档 B1–B3）。剩下：① PA bearer token 能否调 `/v3` promotion 接口、CORS 是否放行（文档写 basicAuth）；② 能否接受 marker 放在 `name`（没有 `external_id`）；③ 是否支持 group 目标 | Promotions 团队 | TO-09、TO-10、TO-15、TO-16 | 按文档写接口加 mock 测试；本地 `pnpm dev:stage` 探测；真实 endpoint 的测试 skip |
+| C2 | 公开文档已给出单条读取 endpoint、VC package 的 PUT 路径、`periods` 结构（两个字段都可为 `null`）（后端 API 文档 A2、A3）。剩下：GET 响应能否直接作为 PUT body；哪些字段只读；VC package 的 PUT 是否整体替换 | Catalog / Store API 团队 | TO-04、TO-05、TO-06、TO-08 | 按文档实现；本地 `pnpm dev:stage` 探测；真实 endpoint 的测试 skip；stage 走查必须包含 VC package |
+| C8（新增） | `periods` 在文档中是 "Item sales period"。窗口外的条目在 storefront 上是隐藏，还是可见但不能买？ | Catalog / Store API 团队 | TO-04、TO-13（文案）、CARD-01 描述 | 按“隐藏”写文案；探测第 2 轮在 storefront 上查看 |
 | C3 | tracking plan 中的事件、et 类型和 exv 字段 | 数据团队 | TO-03、TO-18 | 占位字段名 |
 | C4 | feature flag 名和按账户开启的方式 | 账户负责人 / 后端 | TO-17 | 占位常量 |
 | C6 | Viewer 的识别方式；受限角色与两项能力的对应 | 账户负责人 | TO-12 | 默认值见 TO-12 |
@@ -684,7 +728,7 @@ flowchart TD
 | P4 | "Repeat this window" 是否进 v1 | PRD owner | TO-13 | 不显示 |
 | P12（新增） | 第 2 屏的 "Show in store: Always" 是否进 v1；如果保留，选 Always 是否算 Live | PRD owner | TO-13、TO-11 | v1 不显示，固定为 Limited time |
 | P5 | badge 和 countdown 存在哪里 | PRD owner | TO-14 | 只出现在预览中 |
-| P6 | overlap 中 group 的含义 | PRD owner | TO-10 | catalog item group |
+| P6 | overlap 中 group 的含义 | PRD owner | TO-10 | 文档中 discount 不能以 group 为目标，v1 只判 SKU 级和价格条件重叠 |
 | P7 | 替换还是追加 `periods` | PRD owner | TO-08 | 替换 |
 | P8 | Live 卡片的 "Open" 打开什么 | PRD owner | TO-16、TO-17 | manage 视图 |
 | P9 | 左侧导航是否高亮 "All items" | PRD owner | TO-13 | 不高亮 |
